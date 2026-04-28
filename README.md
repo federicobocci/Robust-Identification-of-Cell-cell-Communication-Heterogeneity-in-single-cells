@@ -1,4 +1,4 @@
-# Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells-scRICH-
+# Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells
 This repository hosts the code of the scRICH method. The method is developed by [Federico Bocci](https://www.ru.nl/en/departments/radboud-institute-for-molecular-life-sciences/computational-cell-fate) at Radboud University.
 
 Currently, the method can be run by downloading the code on your computer and creating a Python environment using the requirements.txt file. A package version of scRICH installable via pip and readthedocs documentation are coming soon!
