@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from .. import db
+from ._colors import discrete_colors
 
 def find_pathway(gene, lig, rec, lig_set, rec_set):
     if gene in lig_set:
@@ -48,10 +49,10 @@ def pattern_marker(ax, adata, pattern, ntop=25, human=True, cmap=plt.cm.tab20,
     lab = np.flip(np.asarray(gene))
     path = np.flip(np.asarray(path))
 
-    colors = list(cmap.colors)
     color_dict = {}
 
     unique_paths = list(set(path))
+    colors = discrete_colors(cmap, len(unique_paths))
     for u, c in zip(unique_paths, colors):
         ax.barh(x[path==u], y[path==u], height=0.8, color=c, alpha=0.5, label=u)
         color_dict[u] = c
@@ -196,7 +197,7 @@ def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, pan
     ncol = max(n % panel_per_row, panel_per_row)
 
     fig = plt.figure(figsize=(panel_length*ncol, panel_height*nrow))
-    colors = list(cmap.colors)
+    colors = discrete_colors(cmap, patterns.size)
 
     for i in range(len(states)):
         sel_adata = adata[ adata.obs[key]==states[i] ]

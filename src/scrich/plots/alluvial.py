@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
+from ._colors import discrete_colors
+
 
 def compute_weight(list1, list2, v1, v2):
     w = 0
@@ -15,7 +17,7 @@ def compute_weight(list1, list2, v1, v2):
 
 def set_color(map, features):
     # convert colors from matplotlib colormap to RGB
-    colors = list(map.colors)[0:len(features)]
+    colors = discrete_colors(map, len(features))
     colorlist = []
     for i in range(len(features)):
         rgb_scaled = tuple([255 * c for c in colors[i]])

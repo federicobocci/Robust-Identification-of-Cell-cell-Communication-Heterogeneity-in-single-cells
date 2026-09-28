@@ -30,5 +30,12 @@
 - `tl.all_path_sim(..., target=True, human=False)` loaded the human TF database; it now uses mouse.
 - Compatibility with current libraries: `matplotlib.cm.get_cmap` (removed) in `pl.redundancy`,
   and `AgglomerativeClustering(affinity=...)` (renamed `metric`) in `pl.pathway_hierarchy`.
+- Plots no longer fail or silently drop categories when there are more signaling patterns, modes or
+  cell types than colours in the palette (`pl.pattern_summary`, `pl.pattern`, `pl.alluvial_*`,
+  `pl.scatter2D`, `pl.mode_violin`, `pl.mode_composition`, `pl.coarse_grained_map`). Palettes are now
+  extended automatically (new helper `scrich.plots._colors.discrete_colors`).
+- `tl.find_sign_patterns` prints how many patterns were found at the chosen resolution and the number
+  of cells in each (new argument `print_info=True`).
+- The `velocity` extra caps `numpy<2.4`: scvelo 0.3.4 fails in `scv.tl.velocity` with NumPy ≥ 2.4.
 - `KMeans` now sets `n_init=10` explicitly, the default of scikit-learn < 1.4 used in the paper.
   (Newer scikit-learn defaults to a single initialisation, which changed the clustering.)

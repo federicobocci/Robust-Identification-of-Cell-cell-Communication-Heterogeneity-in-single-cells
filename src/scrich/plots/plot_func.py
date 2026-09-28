@@ -6,6 +6,8 @@ import matplotlib.text as mtext
 from matplotlib.ticker import MaxNLocator
 import plotly.graph_objects as go
 from matplotlib.colors import to_hex
+
+from ._colors import discrete_colors
 from sklearn.cluster import AgglomerativeClustering
 from scipy.cluster import hierarchy
 
@@ -144,11 +146,8 @@ def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legens_pos=(0.5, 
         labs = list(adata.obs[key])
         order = sorted(list(set(labs)))
 
-    # use  Set2 for signaling models (8 values)
-    if cmap==None:
-        colors = list(plt.cm.Set2.colors)
-    else:
-        colors = list(cmap.colors)
+    # Set2 by default for signaling modes; extended automatically if there are more than 8 categories
+    colors = discrete_colors(plt.cm.Set2 if cmap is None else cmap, len(order))
 
     fig = plt.figure(figsize=figsize)
 
@@ -185,11 +184,8 @@ def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
         order = sorted(list(set(labs)))
 
 
-    # use Set3 (12 values) for clusters/time points and Set2 for signaling models (8 values)
-    if cmap==None:
-        colors = list(plt.cm.Set2.colors)
-    else:
-        colors = list(cmap.colors)
+    # Set2 by default for signaling modes; extended automatically if there are more than 8 categories
+    colors = discrete_colors(plt.cm.Set2 if cmap is None else cmap, len(order))
 
     fig = plt.figure(figsize=figsize)
 
@@ -573,7 +569,7 @@ def mode_composition(adata, key, pathway, mode, order=None, rename_states=None, 
         clst_set = sorted(list(set(clusters)))
     else:
         clst_set = list(np.asarray(order))
-    colors = list(plt.cm.Accent.colors)
+    colors = discrete_colors(plt.cm.Accent, fracs.size)
 
     fig = plt.figure(figsize=figsize)
     ax = plt.subplot(111)

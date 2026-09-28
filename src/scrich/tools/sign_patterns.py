@@ -2,7 +2,7 @@ import numpy as np
 import anndata
 import scanpy as sc
 
-def find_sign_patterns(adata, paths='all', res=1, seed=42):
+def find_sign_patterns(adata, paths='all', res=1, seed=42, print_info=True):
     '''Identify CCC patterns across several pathways by clustering cells based on the CCC modes
 
     Parameters
@@ -11,6 +11,7 @@ def find_sign_patterns(adata, paths='all', res=1, seed=42):
     paths: list of pathways to use in the clustering
     res: clustering resolution
     seed: random generator seed for replicability
+    print_info: if True, print the number of patterns found and the number of cells in each
 
     Returns
     -------
@@ -35,5 +36,14 @@ def find_sign_patterns(adata, paths='all', res=1, seed=42):
     sc.tl.leiden(path_adata, resolution=res)
 
     adata.obs['sign_pattern'] = path_adata.obs['leiden']
+
+    if print_info:
+        counts = adata.obs['sign_pattern'].value_counts()
+        counts = counts.reindex(sorted(counts.index, key=int))
+        print(f"Identified {counts.size} signaling patterns at resolution res={res} "
+              f"(clustering {len(paths)} pathways).")
+        print('Cells per pattern: ' + ', '.join(f'{k}: {v}' for k, v in counts.items()))
+        if counts.size > 20:
+            print('Many patterns were found; a lower resolution (res) gives fewer, larger patterns.')
 
     sc.tl.rank_genes_groups(adata, 'sign_pattern')

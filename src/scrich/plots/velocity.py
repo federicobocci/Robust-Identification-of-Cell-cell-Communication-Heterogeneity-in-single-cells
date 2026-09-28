@@ -9,6 +9,7 @@ from matplotlib.collections import PatchCollection
 import pandas as pd
 
 from .._optional import LazyModule
+from ._colors import discrete_colors
 
 scv = LazyModule("scvelo", extra="velocity")
 
@@ -189,8 +190,7 @@ def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, up
 
     x, y = np.zeros(len(modes) * len(states)), np.zeros(len(modes) * len(states))
 
-    cmap = 'tab20'
-    cmap = mpl.color_sequences[cmap]
+    cmap = discrete_colors('tab20', len(states))
 
     x_umap, y_umap = adata.obsm['X_umap'][:, 0], adata.obsm['X_umap'][:, 1]
     x_scale = np.amax(x_umap) - np.amin(x_umap)

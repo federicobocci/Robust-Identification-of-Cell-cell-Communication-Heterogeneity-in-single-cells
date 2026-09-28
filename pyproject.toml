@@ -40,7 +40,9 @@ dependencies = [
 
 [project.optional-dependencies]
 # RNA velocity-based analyses and plots (scrich.pl.plot_maps, use_velocity=True, ...)
-velocity = ["scvelo>=0.3.3"]
+# scvelo 0.3.4 (latest release) breaks with NumPy >= 2.4 in scv.tl.velocity
+# ("setting an array element with a sequence"), so cap NumPy when scvelo is installed.
+velocity = ["scvelo>=0.3.3", "numpy<2.4"]
 # Interactive chord diagrams (scrich.pl.chord_diagram)
 chord = ["d3blocks>=1.4"]
 # Everything a user needs to run all tutorials
