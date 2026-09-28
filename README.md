@@ -1,16 +1,99 @@
-# Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells
-This repository hosts the code of the scRICH method, which is now published in [Cell Systems](https://www.cell.com/cell-systems/fulltext/S2405-4712(26)00185-7). The method is developed by [Federico Bocci](https://www.ru.nl/en/departments/radboud-institute-for-molecular-life-sciences/computational-cell-fate) at Radboud University.
+# scRICH — Robust Identification of Cell-cell Communication Heterogeneity
+
+This repository hosts the code of the scRICH method, published in
+[Cell Systems](https://www.cell.com/cell-systems/fulltext/S2405-4712(26)00185-7).
+The method is developed by [Federico Bocci](https://www.ru.nl/en/departments/radboud-institute-for-molecular-life-sciences/computational-cell-fate)
+at Radboud University.
 
 ![scRICH schematic](misc/GA.png)
 
-### How to run scRICH
-Currently, the method can be run by downloading the code on your computer and creating a Python environment using the requirements.txt file. A package version of scRICH installable via pip and readthedocs documentation are coming soon!
+> **Branch `refactor/v1` — work in progress.** This branch turns scRICH into an installable
+> Python package. The analysis functions are unchanged; the version used in the paper is the
+> GitHub release [`v0.1.0.0`](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/releases)
+> (Zenodo DOI [10.5281/zenodo.20394264](https://doi.org/10.5281/zenodo.20394264)).
 
-### Documentation
-Tutorial 1 provides the overview of the main functionalities of the model and details explanation of the commands. Tutorials 2-3-4 discuss specific edge-cases about modifying the ligand-receptor set of a specific CCC pathway (tutorial 2), integrating external CCC inference methods (tutorial 3), and comparing RNA velocity methods for CCC inference. These files can be found on Zenodo with project number [19859013](https://zenodo.org/records/19859014), and should be placed in the same folder of the scRICH code.
+## Installation
 
-### Additional data
-To run some of the commands in the tutorials, you will need additional data about ligand-receptor-TF interactions from [exFinder](https://academic.oup.com/nar/article/51/10/e58/7110758) (to run the CCC matrix inference using downstream targets of the pathway - unless the targets are provided by the user) as well as the datasets for tutorials 3 and 4. Otherwise, the code can be run on your own dataset without additional files needed.
+scRICH requires Python ≥ 3.10 (3.12 recommended). Install into a fresh environment.
 
-### Contacts
+**With [uv](https://docs.astral.sh/uv/) (fast, recommended)**
+
+```bash
+git clone https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells scrich
+cd scrich
+uv venv --python 3.12 .venv
+source .venv/bin/activate
+uv pip install -e ".[tutorials]"
+```
+
+**With pip / venv**
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[tutorials]"
+```
+
+**With conda**: `conda env create -f environment.yml && conda activate scrich`
+
+Optional extras: `velocity` (scvelo, for RNA-velocity functions), `chord` (d3blocks, for
+`scrich.pl.chord_diagram`), `tutorials` (both + JupyterLab + LIANA), `dev` (pytest, ruff).
+A plain `pip install -e .` installs only the core package.
+
+## Databases
+
+scRICH uses two kinds of database files (see `scrich.db`):
+
+| Data | Size | Where it lives |
+|---|---|---|
+| Pathway → ligand / receptor tables (CellChatDB) | ~50 kB | Shipped inside the package |
+| exFinder layers (L→R, R→TF, TF→target) + CellChat interactions, human & mouse | ~21 MB | Downloaded on first use and cached |
+
+The external files are only needed for `scrich.tl.import_database` (target genes of a pathway).
+They are downloaded automatically once the database is published on Zenodo. Until then — or
+on a computer without internet — point scRICH to a local copy:
+
+```bash
+export SCRICH_DATA_DIR=/path/to/scrich_db_v1
+```
+
+or in Python:
+
+```python
+import scrich as ri
+ri.db.set_data_dir("/path/to/scrich_db_v1")
+ri.db.fetch_all()   # check that all files are present and valid
+```
+
+Files are verified with SHA256 checksums. `scripts/convert_exfinder_to_parquet.py` documents how
+they were produced from the original exFinder data.
+
+## Quick start
+
+```python
+import scrich as ri
+
+ri.tl.pathways_overview(adata, human=False)
+ri.tl.all_path_sim(adata, "celltype", pathways_to_use=10, target=False, human=False, neighbor_average=True)
+ri.tl.permutation_testing(adata, key="celltype")
+ri.pl.pathway_heterogeneity_summary(adata, key="celltype")
+```
+
+## Tutorials
+
+The notebooks in `tutorials/` cover the main analysis (tutorial 1), modifying the ligand-receptor
+set of a pathway (2), integrating LIANA (3), comparing RNA velocity methods (4) and spatial
+transcriptomics (5). Datasets for tutorials 3–5 are on Zenodo, record
+[19859013](https://zenodo.org/records/19859014).
+
+## Development
+
+```bash
+uv pip install -e ".[dev]"
+pytest                                   # fast tests
+SCRICH_DATA_DIR=/path/to/scrich_db_v1 pytest   # also runs the database tests
+```
+
+## Contacts
+
 For any question, get in touch with Federico Bocci.

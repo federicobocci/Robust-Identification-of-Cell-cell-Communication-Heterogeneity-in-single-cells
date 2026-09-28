@@ -1,0 +1,11 @@
+# Conda alternative to the pip/uv setup described in README.md
+#   conda env create -f environment.yml && conda activate scrich
+name: scrich
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - pip:
+      - -e .[velocity,chord,dev]
+      - jupyterlab
