@@ -51,7 +51,7 @@ def pattern_marker(ax, adata, pattern, ntop=25, human=True, cmap=plt.cm.tab20,
 
     color_dict = {}
 
-    unique_paths = list(set(path))
+    unique_paths = unique(list(path))  # order of appearance (deterministic, unlike set())
     colors = discrete_colors(cmap, len(unique_paths))
     for u, c in zip(unique_paths, colors):
         ax.barh(x[path==u], y[path==u], height=0.8, color=c, alpha=0.5, label=u)
@@ -90,7 +90,7 @@ def state_repr(ax, adata, pattern_adata, key, order, fontsize=10, bar_color='b',
     if order:
         states = order
     else:
-        states = list(set(clusters0))
+        states = sorted(set(clusters0))
 
     frac0 = state_frac(states, clusters0)
     frac = state_frac(states, clusters_patt)
@@ -175,10 +175,10 @@ def pattern(adata, p, key='cluster', order=None, human=True, ntop=25, marker_cma
             ax4.plot([i + 0.6, i + 1.4], [base_lig[i], base_lig[i]], lw=meanwidth, color=meancolor)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format)
+    if showfig:
+        plt.show()
 
 
 def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, panel_height=3, cmap=plt.cm.tab20,
@@ -187,7 +187,7 @@ def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, pan
     if order:
         states = order
     else:
-        states = list(set(list(adata.obs[key])))
+        states = sorted(set(adata.obs[key]))
 
     patterns = np.sort(np.array(list( set(list(adata.obs['sign_pattern'])) ), dtype='int'))
     bins = np.append(patterns-0.5, patterns[-1]+0.5)
@@ -220,9 +220,7 @@ def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, pan
         plt.xlabel('Signaling Pattern', fontsize=fontsize)
         plt.ylabel('Cell Fraction', fontsize=fontsize)
     plt.tight_layout()
-
-    plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format)
+    if showfig:
+        plt.show()

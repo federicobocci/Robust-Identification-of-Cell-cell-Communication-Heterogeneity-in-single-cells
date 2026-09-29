@@ -1,10 +1,13 @@
 '''
 functions for alluvial plots
 '''
+import importlib.util
+
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
+from ..tools._utils import _mode_order
 from ._colors import discrete_colors
 
 
@@ -27,7 +30,7 @@ def set_color(map, features):
 
 def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                    savefig='True', figname='compare_paths.pdf', format='pdf', showfig=True, strip_text=False):
+                    savefig=False, figname='compare_paths.pdf', format='pdf', showfig=True, strip_text=False):
 
     label=lab1+lab2
 
@@ -63,6 +66,9 @@ def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
     fig.update_layout(autosize=False, width=width, height=height, font_size=font_size)
 
     if savefig:
+        if importlib.util.find_spec('kaleido') is None:
+            raise ImportError("Saving alluvial plots as static images (pdf/png/svg) requires the 'kaleido' package: "
+                              "pip install kaleido. Alternatively, save the interactive plot with fig.write_html().")
         fig.write_image(figname, format=format)
     if showfig:
         fig.show()
@@ -72,12 +78,12 @@ def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
 
 def alluvial_onepath(adata, pathway, key, map1=plt.cm.Set3, map2=plt.cm.Set2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                     savefig='True', figname='alluvial.pdf', format='pdf', showfig=True, strip_text=False):
+                     savefig=False, figname='alluvial.pdf', format='pdf', showfig=True, strip_text=False):
 
     memb = list(adata.obs[key])
     p = list(adata.obs[pathway+'_modes'])
 
-    states, modes = sorted(list(set(memb))),  sorted(list(set(p)))
+    states, modes = sorted(set(memb)), _mode_order(adata.obs[pathway + '_modes'])
 
     # set colors for source and targets
     source_color = set_color(map1, states)
@@ -91,18 +97,19 @@ def alluvial_onepath(adata, pathway, key, map1=plt.cm.Set3, map2=plt.cm.Set2, al
 
 def alluvial_twopath(adata, pathway1, pathway2, include='all', key='clusters', map1=plt.cm.Set3, map2=plt.cm.Set2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                     savefig='True', figname='compare_paths.pdf', format='pdf', showfig=True, strip_text=False):
+                     savefig=False, figname='compare_paths.pdf', format='pdf', showfig=True, strip_text=False):
     if include!='all':
         adata = adata[adata.obs[key].isin(include)].copy()
     p1 = list(adata.obs[pathway1 + '_modes'])
     p2 = list(adata.obs[pathway2 + '_modes'])
-    modes1, modes2 = sorted(list(set(p1))), sorted(list(set(p2)))
+    modes1, modes2 = _mode_order(adata.obs[pathway1 + '_modes']), _mode_order(adata.obs[pathway2 + '_modes'])
 
     # if signaling modes were not renamed, add the pathway name to distinguish
     if(modes1[0]==modes2[0]):
         p1 = [str(p) + '-' + pathway1 for p in p1]
         p2 = [str(p) + '-' + pathway2 for p in p2]
-        modes1, modes2 = sorted(list(set(p1))), sorted(list(set(p2)))
+        modes1 = [str(m) + '-' + pathway1 for m in modes1]
+        modes2 = [str(m) + '-' + pathway2 for m in modes2]
 
     # set colors for source and targets
     source_color = set_color(map1, modes1)
@@ -116,7 +123,7 @@ def alluvial_twopath(adata, pathway1, pathway2, include='all', key='clusters', m
 
 def alluvial_pattern(adata, key, map1=plt.cm.Set3, map2=plt.cm.tab20, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                     savefig='True', figname='patterns.pdf', format='pdf', showfig=True, strip_text=False):
+                     savefig=False, figname='patterns.pdf', format='pdf', showfig=True, strip_text=False):
     clusters, patterns = list(adata.obs[key]), np.asarray(adata.obs['sign_pattern'], dtype='int')
 
     states, modes = sorted(list(set(clusters))), sorted(list(set(patterns)))

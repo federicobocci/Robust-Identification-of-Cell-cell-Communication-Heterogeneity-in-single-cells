@@ -7,6 +7,7 @@ from matplotlib.ticker import MaxNLocator
 import plotly.graph_objects as go
 from matplotlib.colors import to_hex
 
+from ..tools._utils import _mode_order
 from ._colors import discrete_colors
 from sklearn.cluster import AgglomerativeClustering
 from scipy.cluster import hierarchy
@@ -68,10 +69,10 @@ def pathways_overview(adata,
     plt.ylabel('Average expression\n(Receptors + Ligands)', fontsize=fontsize)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=dpi)
+    if showfig:
+        plt.show()
 
 def plot_mode_gap(adata,
                   pathway,
@@ -131,10 +132,10 @@ def plot_mode_gap(adata,
     plt.title('Mode gap - ' + pathway + ' pathway')
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format)
+    if showfig:
+        plt.show()
 
 
 '''
@@ -142,9 +143,8 @@ plot the umap of signaling modes as well as the violinplot
 '''
 def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legens_pos=(0.5, 1.2), legend_loc='upper center', ncol=4, legend_font=10,
                  plot_figure=True, figsize=(4,4), showfig=False, savefig=True, figname='umap_scatter.pdf', format='pdf'):
-    if order==None:
-        labs = list(adata.obs[key])
-        order = sorted(list(set(labs)))
+    if order is None:
+        order = _mode_order(adata.obs[key])
 
     # Set2 by default for signaling modes; extended automatically if there are more than 8 categories
     colors = discrete_colors(plt.cm.Set2 if cmap is None else cmap, len(order))
@@ -168,10 +168,10 @@ def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legens_pos=(0.5, 
     plt.tight_layout()
     if plot_figure:
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname, format=format, dpi=300)
+        if showfig:
+            plt.show()
 
 
 '''
@@ -179,9 +179,8 @@ plot the umap of signaling modes as well as the violinplot
 '''
 def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
                  plot_figure=True, figsize=(2,4), showfig=False, savefig=True, figname='mode_violin.pdf', format='pdf'):
-    if order==None:
-        labs = list(adata.obs[key])
-        order = sorted(list(set(labs)))
+    if order is None:
+        order = _mode_order(adata.obs[key])
 
 
     # Set2 by default for signaling modes; extended automatically if there are more than 8 categories
@@ -222,10 +221,10 @@ def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
 
     if plot_figure:
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname, format=format, dpi=300)
+        if showfig:
+            plt.show()
 
 
 def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blues',
@@ -262,10 +261,10 @@ def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blue
 
     if plot_figure:
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname, format=format, dpi=300)
+        if showfig:
+            plt.show()
 
 
 
@@ -342,21 +341,21 @@ def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False
         if i > 0:
             for j in range(i):
                 bot = bot + frac[j]
-        plt.barh(y, frac[i]/clst_norm, left=bot/clst_norm, align='center', alpha=0.75, label='Mode ' + str(i))
+        plt.barh(y, frac[i]/clst_norm, left=bot/clst_norm, align='center', alpha=0.75, label='Mode ' + str(lab_set[i]))
     plt.yticks([])
     plt.ylim([0, y[-1]+0.5])
     if xlim_right:
-        plt.ylim([lim_right, 0])
+        plt.xlim([0, xlim_right])
     plt.xlabel('Mode distribution')
     plt.legend(loc=legend_loc_right, ncol=ncol_right, fontsize=legend_font, fancybox=True, framealpha=0.5)
     # plt.legend(bbox_to_anchor=(0, 1.05), loc='lower left', ncol=ncol_right, fontsize=legend_font)
 
     if plot_figure:
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname, format=format, dpi=300)
+        if showfig:
+            plt.show()
 
 # heterogeneity score of a given pathway for all clusters
 def single_pathway_heterogeneity(adata, pathway, key, order=None, by_score=True, show_perm=True, perm_threshold=0.05, fontsize=10, xlab_rot=90, horizontal=True,
@@ -404,10 +403,10 @@ def single_pathway_heterogeneity(adata, pathway, key, order=None, by_score=True,
             text_obj.set_visible(False)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=300)
+    if showfig:
+        plt.show()
 
 # heterogeneity of each pathway (all clusters considered or an individual cluster)
 def pathway_heterogeneity_summary(adata, key='clusters', state='all', fontsize=10, color='lightskyblue', edgecolor='k', lw=1, errorbar=False, orientation='vertical',
@@ -458,10 +457,10 @@ def pathway_heterogeneity_summary(adata, key='clusters', state='all', fontsize=1
         plt.ylabel('CCI heterogeneity', fontsize=fontsize)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=300)
+    if showfig:
+        plt.show()
 
 def state_heterogeneity_summary(adata, key, order=None, fontsize=10, color='lightskyblue', edgecolor='k', lw=1, errorbar=False, orientation='vertical',
                                   showfig=False, savefig=True, figname='states_summary.pdf', format='pdf', figsize=(3,5)):
@@ -502,10 +501,10 @@ def state_heterogeneity_summary(adata, key, order=None, fontsize=10, color='ligh
         plt.ylabel('CCI heterogeneity', fontsize=fontsize)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=300)
+    if showfig:
+        plt.show()
 
 def heterogeneity_heatmap(adata, key, fontsize=10, cmap='Reds', showfig=False, savefig=True, figname='het_table.pdf', format='pdf', figsize=(6,5)):
     paths = list(adata.uns['pathways'].keys())
@@ -528,10 +527,10 @@ def heterogeneity_heatmap(adata, key, fontsize=10, cmap='Reds', showfig=False, s
     plt.yticks( y[0:-1]+0.5, labels, fontsize=fontsize)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=300)
+    if showfig:
+        plt.show()
 
 
 #########################
@@ -562,10 +561,10 @@ def feature_plot(adata, pathway=None, key='average', cells='all',
     plt.title(pathway+' receptors')
 
     plt.tight_layout()
-    if showfig:
-        plt.showfig()
     if savefig:
         plt.savefig(figname, format=format)
+    if showfig:
+        plt.showfig()
 
 
 def mode_composition(adata, key, pathway, mode, order=None, rename_states=None, fontsize=7, ticksize=7,
@@ -595,10 +594,10 @@ def mode_composition(adata, key, pathway, mode, order=None, rename_states=None, 
     plt.ylabel('Cell fraction', fontsize=fontsize)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format)
+    if showfig:
+        plt.show()
 
 
 ########################

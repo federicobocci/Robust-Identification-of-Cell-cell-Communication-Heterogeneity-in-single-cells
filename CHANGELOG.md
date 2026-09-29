@@ -69,6 +69,21 @@
   extended automatically (new helper `scrich.plots._colors.discrete_colors`).
 - `tl.find_sign_patterns` prints how many patterns were found at the chosen resolution and the number
   of cells in each (new argument `print_info=True`).
+- Plot fixes:
+  - `pl.heatmap_one_pathway(xlim_right=...)` crashed (undefined `lim_right`); it now sets the x-range of the
+    right-hand panel. Its legend shows mode names.
+  - Figures are saved *before* being shown in all matplotlib plots (24 places); with non-inline backends and
+    in scripts, `plt.show()` could clear the figure and produce empty files.
+  - `pl.redundancy`, `pl.pathway_hierarchy` and the alluvial plots had the *string* `'True'` as `savefig`
+    default and therefore always wrote a file; they no longer save unless `savefig=True`.
+  - Saving alluvial plots as static images needs `kaleido`; a clear error explains this (or use `write_html`).
+  - `pl.pattern` / `pl.pattern_summary` ordered cell types and pathway colours with `set()`, which changed
+    between Python sessions; the order is now deterministic.
+  - Mode and pattern order in `pl.scatter2D`, `pl.mode_violin`, the alluvial plots and the velocity
+    probability plots follows the stored mode order (e.g. after `rename_modes`) and numeric pattern order
+    (patterns were ordered '0', '1', '10', '2', ... as strings).
+  - Removed `plots/signaling.py` (not exported, called the non-existent `plt.showfig()` and relied on the
+    removed `pathway_strength`).
 - **Cell-type order bug fixed**: passing `order=` to `tl.all_path_sim` / `tl.consensus_clustering` stored the
   fraction matrix and heterogeneity scores in that order, while plots and `tl.permutation_testing` assumed
   alphabetical order, so results could be shown under the wrong cell type. Results are now always stored in

@@ -9,7 +9,7 @@ from matplotlib.collections import PatchCollection
 import pandas as pd
 
 from .._optional import LazyModule
-from ..tools._utils import extract_neighbors, neighbor_avg
+from ..tools._utils import _mode_order, extract_neighbors, neighbor_avg
 from ._colors import discrete_colors
 
 scv = LazyModule("scvelo", extra="velocity")
@@ -22,7 +22,7 @@ def compute_sign_prob(adata, pathway, key='distances'):
     neighbors = extract_neighbors(adata, key=key)
     modes = np.asarray(adata.obs[pathway + '_modes'])
 
-    unique_modes = sorted(set(modes))
+    unique_modes = _mode_order(adata.obs[pathway + '_modes'])
     sign_prob = np.zeros((modes.size, len(unique_modes)))
     for i in range(modes.size):
         neigh_modes = modes[neighbors[i]]
@@ -35,7 +35,7 @@ def compute_pattern_prob(adata, key='distances'):
     neighbors = extract_neighbors(adata, key=key)
     modes = np.asarray(adata.obs['sign_pattern'])
 
-    unique_modes = sorted(set(modes))
+    unique_modes = _mode_order(adata.obs['sign_pattern'])  # numeric pattern order (not '0', '1', '10', '2', ...)
     sign_prob = np.zeros((modes.size, len(unique_modes)))
     for i in range(modes.size):
         neigh_modes = modes[neighbors[i]]
@@ -86,17 +86,17 @@ def plot_maps(adata, pathway, key='distances', basis='umap', panel_height = 4, p
 
         if mode_to_plot==mode_name[i]:
             plt.tight_layout()
-            if showfig:
-                plt.show()
             if savefig:
                 plt.savefig(figname + '_' + mode_name[i] + '.' + format, format=format, dpi=500)
+            if showfig:
+                plt.show()
 
     if mode_to_plot=='all':
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname + '.' + format, format=format, dpi=500)
+        if showfig:
+            plt.show()
 
 
 def pattern_plot(adata, key='distances', basis='umap', pattern=0, colormap='Reds',
@@ -118,10 +118,10 @@ def pattern_plot(adata, key='distances', basis='umap', pattern=0, colormap='Reds
     plt.title('Pattern ' + str(pattern))
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=500)
+    if showfig:
+        plt.show()
 
 
 
@@ -271,10 +271,10 @@ def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, up
 
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=500)
+    if showfig:
+        plt.show()
 
 
 ###################################
@@ -331,10 +331,10 @@ def state_dist_pst(adata, key='clusters', pst_key='velocity_pseudotime', order=N
 
     if new_ax:
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname, format=format, dpi=dpi)
+        if showfig:
+            plt.show()
 
 
 
@@ -370,10 +370,10 @@ def sign_prob_plot(adata, pathway, key='velocity_pseudotime', legend_font=10, ti
 
     if new_ax:
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname, format=format, dpi=dpi)
+        if showfig:
+            plt.show()
 
     if return_curve:
         return result_dict
@@ -409,10 +409,10 @@ def pattern_prob_plot(adata, pattern, key='velocity_pseudotime', title=None, npo
 
     if new_ax:
         plt.tight_layout()
-        if showfig:
-            plt.show()
         if savefig:
             plt.savefig(figname, format=format, dpi=dpi)
+        if showfig:
+            plt.show()
 
     if return_curve:
         return result_dict
@@ -459,10 +459,10 @@ def expr_map(adata, pathway, key='distances',
     plt.title(pathway + ' Targets')
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=500)
+    if showfig:
+        plt.show()
 
 
 '''
@@ -515,7 +515,7 @@ def top_players_map(adata, pathway, key='distances', top=3, fontsize=10,
         plot_row(adata, x, y, neighbors, weight_tar, tar_list, 2, top, nrow, 'Greens', fontsize=fontsize)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format, dpi=500)
+    if showfig:
+        plt.show()

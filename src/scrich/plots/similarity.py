@@ -11,7 +11,7 @@ from scipy.cluster import hierarchy
 
 # from .analysis_func import pairwise_MI
 
-def redundancy(adata, include='all', key='clusters', figsize=(8, 6), fontsize=10, showfig=False, savefig='True', figname='path_redundancy.pdf', format='pdf'):
+def redundancy(adata, include='all', key='clusters', figsize=(8, 6), fontsize=10, showfig=False, savefig=False, figname='path_redundancy.pdf', format='pdf'):
     if include!='all':
         adata = adata[adata.obs[key].isin(include)].copy()
 
@@ -52,10 +52,10 @@ def redundancy(adata, include='all', key='clusters', figsize=(8, 6), fontsize=10
     ax.xaxis.tick_top()
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format)
+    if showfig:
+        plt.show()
 
 
 def plot_dendrogram(adata, ax, model, cmap=plt.cm.tab20, color_threshold=None, fontsize=10, above_threshold_color='tomato', **kwargs):
@@ -93,7 +93,7 @@ def plot_dendrogram(adata, ax, model, cmap=plt.cm.tab20, color_threshold=None, f
 def pathway_hierarchy(adata, affinity='precomputed', linkage='complete', distance_threshold=0, n_clusters=None,
                       title='Pathway Hierarchical Clustering', cmap=plt.cm.tab20, color_threshold=None, above_threshold_color='tomato',
                       xlim=False, show_ticks=False, fontsize=10,
-                      figsize=(4,6), orientation='vertical', savefig='True', showfig=False, figname='dendrogram.pdf', format='pdf', **kwargs):
+                      figsize=(4,6), orientation='vertical', savefig=False, showfig=False, figname='dendrogram.pdf', format='pdf', **kwargs):
     sim_mat = adata.uns['CCC_similarity_map']
     dist = 1 - sim_mat
     model = AgglomerativeClustering(metric=affinity, linkage=linkage, distance_threshold=distance_threshold,
@@ -110,10 +110,10 @@ def pathway_hierarchy(adata, affinity='precomputed', linkage='complete', distanc
         plt.title(title)
 
     plt.tight_layout()
-    if showfig:
-        plt.show()
     if savefig:
         plt.savefig(figname, format=format)
+    if showfig:
+        plt.show()
 
 
 
