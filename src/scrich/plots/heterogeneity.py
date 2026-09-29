@@ -6,20 +6,22 @@ import matplotlib.pyplot as plt
 import matplotlib.text as mtext
 import numpy as np
 
-from ._utils import _fraction_matrix, discrete_colors
+from ._utils import _fraction_matrix, _new_axes, discrete_colors, plot_function
 
 
-def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False, legend_loc_top='best', legend_loc_right='best',
+@plot_function(aliases={'annotation': 'key'})
+def heatmap_one_pathway(adata, pathway, key, order=None, legend_top=False, legend_loc_top='best', legend_loc_right='best',
                         ncol_top=1, ncol_right=1, ylim_top=False, xlim_right=False, legend_font=10,
                         plot_figure=True, showfig=False, savefig=True, figname='types_table.pdf', format='pdf', width=6, height=6):
 
-    assert pathway + '_modes' in adata.obs.keys(), 'no key found'
+    if pathway + '_modes' not in adata.obs:
+        raise KeyError(f"adata.obs[{pathway + '_modes'!r}] not found. Run scrich.tl.all_path_sim() first.")
 
     # use anchor to put legend on right
     # order of clusters as input
     # use another colormap for the modes
 
-    frac, lab_set, clst_set = _fraction_matrix(adata, pathway, annotation, order)
+    frac, lab_set, clst_set = _fraction_matrix(adata, pathway, key, order)
     ntypes, nclst = len(lab_set), len(clst_set)
 
     fig = plt.figure(figsize=(width, height))
@@ -28,8 +30,8 @@ def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False
     y = np.arange(0.5, nclst, 1)
 
     # break down types based on annotations
-    plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.cm.Set3.colors)
     ax1 = plt.subplot2grid((6, 6), (0, 0), rowspan=2, colspan=4)
+    ax1.set_prop_cycle(color=discrete_colors(plt.cm.Set3, nclst))
 
     mode_norm = np.sum(frac, axis=1)
     for i in range(nclst):
@@ -53,8 +55,8 @@ def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False
     plt.yticks(y, clst_set)
 
     # break down clusters based on types
-    plt.rcParams["axes.prop_cycle"] = plt.cycler("color", plt.cm.Set2.colors)
     ax1 = plt.subplot2grid((6, 6), (2, 4), rowspan=4, colspan=2)
+    ax1.set_prop_cycle(color=discrete_colors(plt.cm.Set2, ntypes))
 
     clst_norm = np.sum(frac, axis=0)
 
@@ -80,8 +82,9 @@ def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False
             plt.show()
 
 
+@plot_function()
 def single_pathway_heterogeneity(adata, pathway, key, order=None, by_score=True, show_perm=True, perm_threshold=0.05, fontsize=10, xlab_rot=90, horizontal=True,
-                                 color='mediumseagreen', showfig=False, savefig=True, figname='single_pathway.pdf', format='pdf', figsize=(6,3), strip_text=False):
+                                 color='mediumseagreen', ax=None, showfig=False, savefig=True, figname='single_pathway.pdf', format='pdf', figsize=(6,3), strip_text=False):
 
     # extract data and labels from anndata object
     labels = sorted(list(set(list(adata.obs[key]))))
@@ -96,7 +99,7 @@ def single_pathway_heterogeneity(adata, pathway, key, order=None, by_score=True,
     else:
         ind = np.arange(0, het.size, 1)
 
-    fig = plt.figure(figsize=figsize)
+    fig, ax = _new_axes(ax, figsize)
 
     if horizontal:
         bars = plt.bar(np.arange(0, het.size, 1), het[ind], color=color)
@@ -131,9 +134,11 @@ def single_pathway_heterogeneity(adata, pathway, key, order=None, by_score=True,
         plt.show()
 
 
+@plot_function()
 def pathway_heterogeneity_summary(adata, key='clusters', state='all', fontsize=10, color='lightskyblue', edgecolor='k', lw=1, errorbar=False, orientation='vertical',
-                                  showfig=False, savefig=True, figname='pathways_summary.pdf', format='pdf', figsize=(3,5)):
-    assert orientation == 'vertical' or orientation == 'horizontal', "Invalid Orientation value. Please choose between 'orientation=vertical' and 'orientation=horizontal'"
+                                  ax=None, showfig=False, savefig=True, figname='pathways_summary.pdf', format='pdf', figsize=(3,5)):
+    if orientation not in ('vertical', 'horizontal'):
+        raise ValueError(f"orientation must be 'vertical' or 'horizontal', got {orientation!r}")
 
     if state!='all':
         labels = sorted(list(set(list(adata.obs[key]))))
@@ -157,7 +162,7 @@ def pathway_heterogeneity_summary(adata, key='clusters', state='all', fontsize=1
 
     ind = np.argsort(avg)
 
-    fig = plt.figure(figsize=figsize)
+    fig, ax = _new_axes(ax, figsize)
 
     if orientation=='vertical':
         if errorbar:
@@ -185,10 +190,12 @@ def pathway_heterogeneity_summary(adata, key='clusters', state='all', fontsize=1
         plt.show()
 
 
+@plot_function()
 def state_heterogeneity_summary(adata, key, order=None, fontsize=10, color='lightskyblue', edgecolor='k', lw=1, errorbar=False, orientation='vertical',
-                                  showfig=False, savefig=True, figname='states_summary.pdf', format='pdf', figsize=(3,5)):
+                                  ax=None, showfig=False, savefig=True, figname='states_summary.pdf', format='pdf', figsize=(3,5)):
 
-    assert orientation=='vertical' or orientation=='horizontal', "Invalid Orientation value. Please choose between 'orientation=vertical' and 'orientation=horizontal'"
+    if orientation not in ('vertical', 'horizontal'):
+        raise ValueError(f"orientation must be 'vertical' or 'horizontal', got {orientation!r}")
 
     # paths = list(adata.uns['pathways'].keys())
     paths = adata.uns['selected_pathways']
@@ -206,7 +213,7 @@ def state_heterogeneity_summary(adata, key, order=None, fontsize=10, color='ligh
     else:
         ind = [labels.index(o) for o in order]
 
-    fig = plt.figure(figsize=figsize)
+    fig, ax = _new_axes(ax, figsize)
 
     if orientation=='vertical':
         if errorbar:
@@ -230,8 +237,10 @@ def state_heterogeneity_summary(adata, key, order=None, fontsize=10, color='ligh
         plt.show()
 
 
-def heterogeneity_heatmap(adata, key, fontsize=10, cmap='Reds', showfig=False, savefig=True, figname='het_table.pdf', format='pdf', figsize=(6,5)):
-    paths = list(adata.uns['pathways'].keys())
+@plot_function()
+def heterogeneity_heatmap(adata, key, fontsize=10, cmap='Reds', ax=None, showfig=False, savefig=True, figname='het_table.pdf', format='pdf', figsize=(6,5)):
+    # only pathways analysed with all_path_sim have a heterogeneity score
+    paths = [p for p in adata.uns['pathways'] if 'cci_heterogeneity' in adata.uns['pathways'][p]]
     labels = sorted(list(set(list(adata.obs[key]))))
 
     het_mat = np.zeros((len(paths), len(labels)))
@@ -240,7 +249,7 @@ def heterogeneity_heatmap(adata, key, fontsize=10, cmap='Reds', showfig=False, s
         for j in range(len(labels)):
             het_mat[i][j] = v_het[j]
 
-    fig = plt.figure(figsize=figsize)
+    fig, ax = _new_axes(ax, figsize)
 
     x, y = np.arange(0, len(paths)+1, 1), np.arange(0, len(labels)+1, 1)
     pt = plt.pcolor(x, y, het_mat.transpose(), cmap=cmap, vmin=0, vmax=np.amax(het_mat))
@@ -257,7 +266,8 @@ def heterogeneity_heatmap(adata, key, fontsize=10, cmap='Reds', showfig=False, s
         plt.show()
 
 
-def mode_composition(adata, key, pathway, mode, order=None, rename_states=None, fontsize=7, ticksize=7,
+@plot_function()
+def mode_composition(adata, key, pathway, mode, order=None, rename_states=None, fontsize=7, ticksize=7, ax=None,
                      figsize=(3,3), showfig=False, savefig=True, figname='mode_composition.pdf', format='pdf'):
     # plot the composition of a signaling mode - normalize based on the total number of cells in each cluster
     frac, lab_set, clst_set = _fraction_matrix(adata, pathway, key, order)
@@ -267,8 +277,7 @@ def mode_composition(adata, key, pathway, mode, order=None, rename_states=None, 
     fracs = frac[row]
     colors = discrete_colors(plt.cm.Accent, fracs.size)
 
-    fig = plt.figure(figsize=figsize)
-    ax = plt.subplot(111)
+    fig, ax = _new_axes(ax, figsize)
     ax.spines[['right', 'top']].set_visible(False)
 
     if rename_states:

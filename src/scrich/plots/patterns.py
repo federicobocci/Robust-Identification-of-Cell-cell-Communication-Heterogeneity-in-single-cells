@@ -10,7 +10,8 @@ from scipy.cluster import hierarchy
 from sklearn.cluster import AgglomerativeClustering
 
 from .. import db
-from ._utils import discrete_colors
+from ..tools._utils import _resolve_species
+from ._utils import _new_axes, discrete_colors, plot_function
 
 
 def find_pathway(gene, lig, rec, lig_set, rec_set):
@@ -30,12 +31,11 @@ def unique(paths):
     return unique
 
 
-def pattern_marker(ax, adata, pattern, ntop=25, human=True, cmap=plt.cm.tab20,
+def pattern_marker(ax, adata, pattern, ntop=25, species='human', cmap=plt.cm.tab20,
                    fontsize=10):
 
     # path_list = list(adata.uns['pathways'].keys())
     path_list = adata.uns['selected_pathways']
-    species = 'human' if human else 'mouse'
     lig = db.load_pathway_genes('ligand', species=species)
     rec = db.load_pathway_genes('receptor', species=species)
     lig_set = list(lig['ligand'])
@@ -121,14 +121,18 @@ def state_repr(ax, adata, pattern_adata, key, order, fontsize=10, bar_color='b',
     ax.set_xlabel('Pattern composition', fontsize=fontsize)
 
 
-def pattern(adata, p, key='cluster', order=None, human=True, ntop=25, marker_cmap= plt.cm.tab20,                       # general function parameters
+@plot_function()
+def pattern(adata, p, key='cluster', order=None, species=None, ntop=25, marker_cmap= plt.cm.tab20,                       # general function parameters
             fontsize=10,                                                               # plotting parameter for all plots
             lig_color='b', rec_color='r', showmean=False, meanwidth=1, meancolor='k',   # plotting parameter for violin plots
             bar_color='b', bar_alpha=0.5, figsize=(15, 6),                                                  # plotting parameter for composition plot
-            savefig=True, figname='pattern_detail.pdf', showfig=False, format='pdf', dpi=300       # figure parameters
+            savefig=True, figname='pattern_detail.pdf', showfig=False, format='pdf', dpi=300,      # figure parameters
+            human=None                                                                 # deprecated, use species
             ):
 
-    assert 'sign_pattern' in adata.obs.keys(), "Run signaling pattern analysis before calling pattern()"
+    if 'sign_pattern' not in adata.obs:
+        raise KeyError("Run scrich.tl.find_sign_patterns() before scrich.pl.pattern().")
+    species = _resolve_species(species, human)
 
     pattern_adata = adata[adata.obs['sign_pattern'] == str(p)]
 
@@ -138,7 +142,7 @@ def pattern(adata, p, key='cluster', order=None, human=True, ntop=25, marker_cma
     state_repr(ax1, adata, pattern_adata, key, order, fontsize=fontsize)
 
     ax2 = plt.subplot2grid((7, 15), (0, 4), rowspan=6, colspan=4)
-    unique_paths, color_dict = pattern_marker(ax2, adata, p, ntop=ntop, human=human, cmap=marker_cmap, fontsize=fontsize)
+    unique_paths, color_dict = pattern_marker(ax2, adata, p, ntop=ntop, species=species, cmap=marker_cmap, fontsize=fontsize)
 
     ax3 = plt.subplot2grid((7, 15), (0, 10), rowspan=3, colspan=5)
 
@@ -189,6 +193,7 @@ def pattern(adata, p, key='cluster', order=None, human=True, ntop=25, marker_cma
         plt.show()
 
 
+@plot_function()
 def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, panel_height=3, cmap=plt.cm.tab20,
                     fontsize=10,
                     savefig=True, figname='pattern_summary.pdf', showfig=False, format='pdf', dpi=300):
@@ -234,7 +239,8 @@ def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, pan
         plt.show()
 
 
-def redundancy(adata, include='all', key='clusters', figsize=(8, 6), fontsize=10, showfig=False, savefig=False, figname='path_redundancy.pdf', format='pdf'):
+@plot_function()
+def redundancy(adata, include='all', key='clusters', figsize=(8, 6), fontsize=10, ax=None, showfig=False, savefig=False, figname='path_redundancy.pdf', format='pdf'):
     if include!='all':
         adata = adata[adata.obs[key].isin(include)].copy()
 
@@ -243,8 +249,7 @@ def redundancy(adata, include='all', key='clusters', figsize=(8, 6), fontsize=10
     mask = np.tri(sim_mat.shape[0], k=0)
     plot_mat = np.ma.array(sim_mat, mask=mask)
 
-    fig = plt.figure(figsize=figsize)
-    ax = plt.subplot(111)
+    fig, ax = _new_axes(ax, figsize)
 
     cmap = matplotlib.colormaps["Reds"].copy()
     cmap.set_bad('w')
@@ -312,17 +317,17 @@ def plot_dendrogram(adata, ax, model, cmap=plt.cm.tab20, color_threshold=None, f
                          color_threshold=color_threshold, above_threshold_color=above_threshold_color, **kwargs)
 
 
+@plot_function()
 def pathway_hierarchy(adata, affinity='precomputed', linkage='complete', distance_threshold=0, n_clusters=None,
                       title='Pathway Hierarchical Clustering', cmap=plt.cm.tab20, color_threshold=None, above_threshold_color='tomato',
                       xlim=False, show_ticks=False, fontsize=10,
-                      figsize=(4,6), orientation='vertical', savefig=False, showfig=False, figname='dendrogram.pdf', format='pdf', **kwargs):
+                      figsize=(4,6), orientation='vertical', ax=None, savefig=False, showfig=False, figname='dendrogram.pdf', format='pdf', **kwargs):
     sim_mat = adata.uns['CCC_similarity_map']
     dist = 1 - sim_mat
     model = AgglomerativeClustering(metric=affinity, linkage=linkage, distance_threshold=distance_threshold,
                                     n_clusters=n_clusters).fit(dist)
 
-    plt.figure(figsize=figsize)
-    ax = plt.subplot(111)
+    fig, ax = _new_axes(ax, figsize)
     plot_dendrogram(adata, ax, model, cmap=cmap, color_threshold=color_threshold, above_threshold_color=above_threshold_color, fontsize=fontsize, **kwargs)
     if not show_ticks:
         ax.set_xticks([])

@@ -12,6 +12,19 @@ from sklearn.neighbors import kneighbors_graph
 matplotlib.use("Agg")
 
 
+@pytest.fixture(autouse=True)
+def _no_autoshow():
+    """Plots are not shown in tests (non-interactive backend); individual tests may override."""
+    import matplotlib.pyplot as plt
+
+    import scrich as ri
+
+    ri.settings.autoshow = False
+    yield
+    ri.settings.autoshow = True
+    plt.close("all")
+
+
 @pytest.fixture(scope="session")
 def exfinder_dir():
     """Folder with the external database files, or skip the test.

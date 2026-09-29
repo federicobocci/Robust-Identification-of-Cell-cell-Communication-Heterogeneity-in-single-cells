@@ -34,11 +34,11 @@ def test_downstream_and_plots(adata_mouse):
     mat = adata_mouse.uns["ccc_mat"][paths[0]]["mat"]
     assert np.isclose(mat.sum(), 1.0)
     for f in [
-        lambda: ri.pl.plot_mode_gap(adata_mouse, paths[0], savefig=False, showfig=False),
-        lambda: ri.pl.mode_violin(adata_mouse, paths[0] + "_modes", savefig=False, showfig=False),
-        lambda: ri.pl.heatmap_one_pathway(adata_mouse, paths[0], "celltype", savefig=False, showfig=False),
-        lambda: ri.pl.redundancy(adata_mouse, savefig=False, showfig=False),
-        lambda: ri.pl.pathway_hierarchy(adata_mouse, savefig=False, showfig=False),
+        lambda: ri.pl.plot_mode_gap(adata_mouse, paths[0], show=False),
+        lambda: ri.pl.mode_violin(adata_mouse, paths[0] + "_modes", show=False),
+        lambda: ri.pl.heatmap_one_pathway(adata_mouse, paths[0], "celltype", show=False),
+        lambda: ri.pl.redundancy(adata_mouse, show=False),
+        lambda: ri.pl.pathway_hierarchy(adata_mouse, show=False),
     ]:
         f()
         plt.close("all")

@@ -9,24 +9,26 @@ import pandas as pd
 from matplotlib.collections import PatchCollection
 
 from .._optional import LazyModule
-from ._utils import discrete_colors
+from .._settings import settings
+from ._utils import _new_axes, discrete_colors, plot_function
 
 _d3blocks = LazyModule("d3blocks", extra="chord")
 scv = LazyModule("scvelo", extra="velocity")
 
 
-def chord_diagram(adata, p, eps=0.01):
-    '''Generate a chord diagram of the CCC pathway p using the d3blocks library.
+def chord_diagram(adata, p, eps=0.01, show=None):
+    '''Generate a chord diagram of the CCC pathway p using the d3blocks library (interactive HTML).
 
     Parameters
     ----------
     adata: scRNA-seq data object
     p: pathway of interest
     eps: threshold to select interactions in the CCC matrix
+    show: open the diagram; None follows scrich.settings.autoshow
 
     Returns
     -------
-    None
+    The d3blocks object (e.g. to save it: ``d3.chord(..., filepath=...)`` / see the d3blocks documentation)
 
     '''
     states, mat = adata.uns['ccc_mat'][p]['states'], adata.uns['ccc_mat'][p]['mat']
@@ -43,7 +45,9 @@ def chord_diagram(adata, p, eps=0.01):
 
     d3 = _d3blocks.D3Blocks()
     d3.chord(ccc_df)
-    d3.show()
+    if settings.autoshow if show is None else show:
+        d3.show()
+    return d3
 
 
 def enforce_spacing(x, y, dx, thr):
@@ -85,10 +89,11 @@ def draw_self_loop(ax, center, radius, facecolor='#2693de', edgecolor='#000000',
     ax.add_collection(p)
 
 
+@plot_function()
 def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, update_connection=None,
                        update_horiz_align=None, update_vert_align=None, linewidth=0.25, arrow_style='->',
                        single_source=None, single_target=None, figsize=(4, 4), strip_text=False,
-                       showfig=False, savefig=True, figname='coarse_grained.png', format='png'):
+                       basis='umap', ax=None, showfig=False, savefig=True, figname='coarse_grained.png', format='png'):
     mat = adata.uns['ccc_mat'][pathway]['mat']
     states = sorted(list(set(adata.obs[key])))
     modes = sorted(set(list(adata.obs[pathway + '_modes'])))
@@ -97,13 +102,12 @@ def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, up
 
     cmap = discrete_colors('tab20', len(states))
 
-    x_umap, y_umap = adata.obsm['X_umap'][:, 0], adata.obsm['X_umap'][:, 1]
+    x_umap, y_umap = adata.obsm['X_' + basis][:, 0], adata.obsm['X_' + basis][:, 1]
     x_scale = np.amax(x_umap) - np.amin(x_umap)
     text_separation = 0.02 * x_scale
 
-    fig = plt.figure(figsize=figsize)
+    fig, ax = _new_axes(ax, figsize)
 
-    ax = plt.subplot(111)
     ax.axis('off')
 
     # states and modes should be ordered in the same way as in the CCC matrix calculation
@@ -111,10 +115,10 @@ def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, up
     i = 0
     for s in states:
         for m in modes:
-            node_state.append(s + '-' + m)
+            node_state.append(s + '-' + str(m))
             adata_sel = adata[adata.obs[key] == s].copy()
             adata_sel = adata_sel[adata_sel.obs[pathway + '_modes'] == m]
-            x[i], y[i] = np.mean(adata_sel.obsm['X_umap'][:, 0]), np.mean(adata_sel.obsm['X_umap'][:, 1])
+            x[i], y[i] = np.mean(adata_sel.obsm['X_' + basis][:, 0]), np.mean(adata_sel.obsm['X_' + basis][:, 1])
             i = i + 1
 
     # x_new, y_new, count = enforce_spacing(x, y, text_separation, text_separation)
@@ -138,12 +142,12 @@ def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, up
                 # make size scale with population size
                 plt.scatter(x_new[i], y_new[i], c=cmap[j], s=100, edgecolors='k', linewidths=0.5)
                 if not strip_text:
-                    plt.text(x_new[i] - text_separation, y_new[i], states[j] + '-' + modes[k], fontsize=fontsize,
+                    plt.text(x_new[i] - text_separation, y_new[i], states[j] + '-' + str(modes[k]), fontsize=fontsize,
                              horizontalalignment=horizontal_align_dct[node_state[i]],
                              verticalalignment=vertical_align_dct[node_state[i]], fontweight="bold")
             i = i + 1
 
-    scv.pl.velocity_embedding_stream(adata, basis='umap', size=0, arrow_size=0.5, linewidth=linewidth, ax=ax, show=False,
+    scv.pl.velocity_embedding_stream(adata, basis=basis, size=0, arrow_size=0.5, linewidth=linewidth, ax=ax, show=False,
                                      arrow_style=arrow_style,
                                      save=False,
                                      legend_loc=False, title='')

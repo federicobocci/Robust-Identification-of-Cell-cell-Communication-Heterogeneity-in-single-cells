@@ -6,7 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 
+from ._utils import plot_function
 
+
+@plot_function()
 def pathways_overview(adata,
                   figsize=(8,8),
                   ticksize=7,
@@ -17,7 +20,8 @@ def pathways_overview(adata,
                   figname='pathways_overview.pdf',
                   format='pdf',
                   dpi=500):
-    assert 'paths_overview' in adata.uns.keys(), "Run mc.pathways_overview before pf.pathways_overview"
+    if 'paths_overview' not in adata.uns:
+        raise KeyError("Run scrich.tl.pathways_overview() before scrich.pl.pathways_overview().")
 
     # number of detected genes
     number_dct = adata.uns['paths_overview']['gene_number']

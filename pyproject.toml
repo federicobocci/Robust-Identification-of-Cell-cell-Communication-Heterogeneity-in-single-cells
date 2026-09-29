@@ -32,8 +32,6 @@ dependencies = [
     "scanpy[leiden]>=1.10",
     "numba>=0.58",
     "matplotlib>=3.7",
-    "seaborn>=0.13",
-    "plotly>=5.14",
     "pooch>=1.8",
     "pyarrow>=14",
 ]
@@ -42,11 +40,13 @@ dependencies = [
 # RNA velocity-based analyses and plots (scrich.pl.plot_maps, use_velocity=True, ...)
 # scvelo 0.3.4 (latest release) breaks with NumPy >= 2.4 in scv.tl.velocity
 # ("setting an array element with a sequence"), so cap NumPy when scvelo is installed.
-velocity = ["scvelo>=0.3.3", "numpy<2.4"]
+velocity = ["scvelo>=0.3.3", "numpy<2.4", "seaborn>=0.13"]
+# Alluvial (Sankey) plots (scrich.pl.alluvial_*); kaleido is needed to save them as pdf/png/svg
+alluvial = ["plotly>=5.14", "kaleido"]
 # Interactive chord diagrams (scrich.pl.chord_diagram)
 chord = ["d3blocks>=1.4"]
 # Everything a user needs to run all tutorials
-tutorials = ["scrich[velocity,chord]", "jupyterlab", "liana"]
+tutorials = ["scrich[velocity,chord,alluvial]", "jupyterlab", "liana"]
 dev = ["pytest>=8", "pytest-cov", "ruff>=0.6", "pre-commit"]
 docs = [
     "sphinx>=7",

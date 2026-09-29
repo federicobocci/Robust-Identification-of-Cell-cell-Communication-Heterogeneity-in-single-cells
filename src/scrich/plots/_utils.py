@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
+import functools
+import importlib.util
+import inspect
+import os
+import warnings
 from collections.abc import Sequence
 
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import Colormap, ListedColormap, to_rgb
+
+from .._settings import settings
 
 _EXTENSION_PALETTES = ("tab20", "tab20b", "tab20c")
 
@@ -73,3 +81,104 @@ def _fraction_matrix(adata, pathway, key, order=None):
     if missing:
         raise ValueError(f"order contains unknown cell types: {missing}")
     return frac[:, [cell_types.index(c) for c in order]], modes, order
+
+
+# --------------------------------------------------------------------------- #
+# Common plotting interface (scanpy-style): show / ax / return_fig
+# --------------------------------------------------------------------------- #
+_LEGACY = ("savefig", "showfig", "figname", "format", "dpi")
+
+
+def _new_axes(ax=None, figsize=None):
+    """Axes to draw on: the user's ``ax`` if given, otherwise a new figure with one axes."""
+    if ax is None:
+        fig = plt.figure(figsize=figsize)
+        ax = fig.add_subplot(111)
+    plt.sca(ax)
+    return ax.figure, ax
+
+
+def _is_plotly(obj) -> bool:
+    return type(obj).__module__.startswith("plotly")
+
+
+def plot_function(aliases: dict[str, str] | None = None):
+    """Decorator giving every ``scrich.pl`` function the same interface.
+
+    New arguments (scanpy style):
+
+    - ``show=None``: show the figure; ``None`` follows ``scrich.settings.autoshow`` (True by default).
+    - ``return_fig=False``: return the figure (matplotlib ``Figure`` or plotly figure).
+
+    With ``show=False`` the axes (or list of axes; the plotly figure for alluvial plots) are returned,
+    so plots can be modified or saved, e.g. ``ax.figure.savefig('plot.pdf')``.
+
+    The previous arguments ``savefig``, ``showfig``, ``figname``, ``format`` and ``dpi`` still work but are
+    deprecated (FutureWarning). ``aliases`` maps renamed arguments (old name -> new name).
+    """
+    aliases = aliases or {}
+
+    def decorator(func):
+        params = inspect.signature(func).parameters
+        defaults = {k: params[k].default for k in ("figname", "format", "dpi") if k in params}
+
+        @functools.wraps(func)
+        def wrapper(*args, show=None, return_fig=False, **kwargs):
+            for old, new in aliases.items():
+                if old in kwargs:
+                    warnings.warn(f"{func.__name__}: '{old}' is deprecated, use '{new}' instead.",
+                                  FutureWarning, stacklevel=2)
+                    kwargs.setdefault(new, kwargs.pop(old))
+            legacy = {k: kwargs.pop(k) for k in _LEGACY if k in kwargs}
+            if legacy:
+                warnings.warn(
+                    f"{func.__name__}: the arguments {sorted(legacy)} are deprecated. Use show=... and save the "
+                    "returned figure instead, e.g. ax = scrich.pl.<plot>(..., show=False); "
+                    "ax.figure.savefig('plot.pdf').", FutureWarning, stacklevel=2)
+                if show is None and "showfig" in legacy:
+                    show = bool(legacy["showfig"])
+            # the plotting code itself never saves or shows
+            for k in ("savefig", "showfig"):
+                if k in params:
+                    kwargs[k] = False
+            out = func(*args, **kwargs)
+
+            if _is_plotly(out):
+                fig, axes = out, out
+            else:
+                ax = kwargs.get("ax")
+                fig = ax.figure if ax is not None else plt.gcf()
+                axes = fig.axes[0] if len(fig.axes) == 1 else list(fig.axes)
+
+            if legacy.get("savefig"):
+                _legacy_save(fig, {**defaults, **legacy})
+
+            if settings.autoshow if show is None else show:
+                fig.show() if _is_plotly(fig) else plt.show()
+                result = None
+            else:
+                result = axes
+            if return_fig:
+                return fig
+            if out is not None and not _is_plotly(out):
+                return out  # functions that return data (e.g. return_curve=True)
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def _legacy_save(fig, opts):
+    name = str(opts.get("figname") or "figure")
+    fmt = opts.get("format") or None
+    if fmt and not os.path.splitext(name)[1]:
+        name = f"{name}.{fmt}"
+    if _is_plotly(fig):
+        if importlib.util.find_spec("kaleido") is None:
+            raise ImportError("Saving alluvial plots as static images (pdf/png/svg) requires the 'kaleido' package "
+                              "(pip install 'scrich[alluvial]'). Alternatively use fig.write_html('plot.html').")
+        fig.write_image(name, format=fmt)
+    else:
+        dpi = opts.get("dpi")
+        fig.savefig(name, format=fmt, dpi=dpi if isinstance(dpi, (int, float)) else 300)

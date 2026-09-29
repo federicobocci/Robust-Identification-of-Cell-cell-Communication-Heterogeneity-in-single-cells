@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-import importlib.util
-
 import matplotlib.pyplot as plt
 import numpy as np
-import plotly.graph_objects as go
 
+from .._optional import LazyModule
 from ..tools._utils import _mode_order
-from ._utils import discrete_colors
+from ._utils import discrete_colors, plot_function
+
+go = LazyModule("plotly.graph_objects", extra="alluvial")
 
 
 def compute_weight(list1, list2, v1, v2):
@@ -32,7 +32,7 @@ def set_color(map, features):
 
 def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                    savefig=False, figname='compare_paths.pdf', format='pdf', showfig=True, strip_text=False):
+                    savefig=False, figname='compare_paths.pdf', format='pdf', showfig=False, strip_text=False):
 
     label=lab1+lab2
 
@@ -67,18 +67,14 @@ def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
 
     fig.update_layout(autosize=False, width=width, height=height, font_size=font_size)
 
-    if savefig:
-        if importlib.util.find_spec('kaleido') is None:
-            raise ImportError("Saving alluvial plots as static images (pdf/png/svg) requires the 'kaleido' package: "
-                              "pip install kaleido. Alternatively, save the interactive plot with fig.write_html().")
-        fig.write_image(figname, format=format)
-    if showfig:
-        fig.show()
+    # saving and showing are handled by the plot_function decorator of the public functions
+    return fig
 
 
+@plot_function()
 def alluvial_onepath(adata, pathway, key, map1=plt.cm.Set3, map2=plt.cm.Set2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                     savefig=False, figname='alluvial.pdf', format='pdf', showfig=True, strip_text=False):
+                     savefig=False, figname='alluvial.pdf', format='pdf', showfig=False, strip_text=False):
 
     memb = list(adata.obs[key])
     p = list(adata.obs[pathway+'_modes'])
@@ -89,15 +85,16 @@ def alluvial_onepath(adata, pathway, key, map1=plt.cm.Set3, map2=plt.cm.Set2, al
     source_color = set_color(map1, states)
     target_color = set_color(map2, modes)
 
-    twostate_sankey(memb, p, states, modes, source_color, target_color, 'Cell Type', pathway+' Mode', alpha=alpha,
+    return twostate_sankey(memb, p, states, modes, source_color, target_color, 'Cell Type', pathway+' Mode', alpha=alpha,
                     pad=pad, thickness=thickness, linecolor=linecolor, linewidth=linewidth, width=width,
                     height=height, font_size=font_size,
                     savefig=savefig, figname=figname, format=format, showfig=showfig, strip_text=strip_text)
 
 
+@plot_function()
 def alluvial_twopath(adata, pathway1, pathway2, include='all', key='clusters', map1=plt.cm.Set3, map2=plt.cm.Set2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                     savefig=False, figname='compare_paths.pdf', format='pdf', showfig=True, strip_text=False):
+                     savefig=False, figname='compare_paths.pdf', format='pdf', showfig=False, strip_text=False):
     if include!='all':
         adata = adata[adata.obs[key].isin(include)].copy()
     p1 = list(adata.obs[pathway1 + '_modes'])
@@ -115,15 +112,16 @@ def alluvial_twopath(adata, pathway1, pathway2, include='all', key='clusters', m
     source_color = set_color(map1, modes1)
     target_color = set_color(map2, modes2)
 
-    twostate_sankey(p1, p2, modes1, modes2, source_color, target_color, pathway1, pathway2, alpha=alpha,
+    return twostate_sankey(p1, p2, modes1, modes2, source_color, target_color, pathway1, pathway2, alpha=alpha,
                     pad=pad, thickness=thickness, linecolor=linecolor, linewidth=linewidth, width=width,
                     height=height, font_size=font_size,
                     savefig=savefig, figname=figname, format=format, showfig=showfig, strip_text=strip_text)
 
 
+@plot_function()
 def alluvial_pattern(adata, key, map1=plt.cm.Set3, map2=plt.cm.tab20, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
-                     savefig=False, figname='patterns.pdf', format='pdf', showfig=True, strip_text=False):
+                     savefig=False, figname='patterns.pdf', format='pdf', showfig=False, strip_text=False):
     clusters, patterns = list(adata.obs[key]), np.asarray(adata.obs['sign_pattern'], dtype='int')
 
     states, modes = sorted(list(set(clusters))), sorted(list(set(patterns)))
@@ -131,7 +129,7 @@ def alluvial_pattern(adata, key, map1=plt.cm.Set3, map2=plt.cm.tab20, alpha=0.5,
     source_color = set_color(map1, states)
     target_color = set_color(map2, modes)
 
-    twostate_sankey(clusters, patterns, states, modes, source_color, target_color, 'Cell Type', 'Pattern', alpha=alpha,
+    return twostate_sankey(clusters, patterns, states, modes, source_color, target_color, 'Cell Type', 'Pattern', alpha=alpha,
                     pad=pad, thickness=thickness, linecolor=linecolor, linewidth=linewidth, width=width,
                     height=height, font_size=font_size,
                     savefig=savefig, figname=figname, format=format, showfig=showfig, strip_text=strip_text)

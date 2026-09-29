@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ..tools._utils import _mode_order
-from ._utils import discrete_colors
+from ._utils import _new_axes, discrete_colors, plot_function
 
 
+@plot_function()
 def plot_mode_gap(adata,
                   pathway,
                   max=10,
@@ -21,6 +22,7 @@ def plot_mode_gap(adata,
                   legend=True,
                   legend_loc='best',
                   figsize=(5,4),
+                  ax=None,
                   showfig=False,
                   savefig=True,
                   figname='eigen_gap.pdf',
@@ -57,7 +59,7 @@ def plot_mode_gap(adata,
     gap = adata.uns['SymNMF'][pathway]['gap']
 
     # plotting
-    plt.figure(figsize=figsize)
+    fig, ax = _new_axes(ax, figsize)
     plt.plot(np.arange(1, max+1, 1), np.sort(w)[0:max], eigen_style, label='Eigenvalues')
     plt.plot(np.arange(2, max+1, 1), gap[0:max], gap_style, label='Gap between\nconsecutive\neigenvalues')
     plt.xticks(np.arange(1, max+1, 1), fontsize=tick_fontize)
@@ -74,29 +76,24 @@ def plot_mode_gap(adata,
         plt.show()
 
 
-def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legens_pos=(0.5, 1.2), legend_loc='upper center', ncol=4, legend_font=10,
-                 plot_figure=True, figsize=(4,4), showfig=False, savefig=True, figname='umap_scatter.pdf', format='pdf'):
+@plot_function(aliases={'legens_pos': 'legend_pos'})
+def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legend_pos=(0.5, 1.2), legend_loc='upper center', ncol=4, legend_font=10,
+                 plot_figure=True, figsize=(4,4), basis='umap', showfig=False, savefig=True, figname='umap_scatter.pdf', format='pdf'):
     if order is None:
         order = _mode_order(adata.obs[key])
 
     # Set2 by default for signaling modes; extended automatically if there are more than 8 categories
     colors = discrete_colors(plt.cm.Set2 if cmap is None else cmap, len(order))
 
-    fig = plt.figure(figsize=figsize)
-
-    ### umap plot ###
-    if not ax:
-        ax1 = plt.subplot()
-    else:
-        ax1 = ax
+    fig, ax1 = _new_axes(ax, figsize)
 
     patches = []
     for l, c in zip(order, colors):
-        coords = adata.obsm['X_umap'][adata.obs[key]==l]
+        coords = adata.obsm['X_' + basis][np.asarray(adata.obs[key]==l)]
         ax1.scatter( coords[:,0], coords[:,1], s=s, c=[c for i in range(coords[:,1].size)], alpha=0.5, label=l )
         patches.append( mpatches.Patch(color=c, label=l) )
     plt.axis('off')
-    plt.legend(bbox_to_anchor=legens_pos, handles=patches, loc=legend_loc, ncol=ncol, fontsize=legend_font)
+    plt.legend(bbox_to_anchor=legend_pos, handles=patches, loc=legend_loc, ncol=ncol, fontsize=legend_font)
 
     plt.tight_layout()
     if plot_figure:
@@ -107,6 +104,7 @@ def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legens_pos=(0.5, 
             plt.show()
 
 
+@plot_function()
 def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
                  plot_figure=True, figsize=(2,4), showfig=False, savefig=True, figname='mode_violin.pdf', format='pdf'):
     if order is None:
@@ -157,12 +155,13 @@ def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
             plt.show()
 
 
-def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blues',
+@plot_function()
+def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blues', basis='umap',
                  plot_figure=True, showfig=False, savefig=True, figname='pathway_scatter.pdf', format='pdf'):
     if include!='all':
         adata = adata[adata.obs[key].isin(include)].copy()
 
-    coords = adata.obsm['X_umap']
+    coords = adata.obsm['X_' + basis]
     lig, rec = np.asarray(adata.obs[pathway+'_lig']), np.asarray(adata.obs[pathway+'_rec'])
 
     if pathway+'_tar' in adata.obs.keys():
@@ -197,30 +196,43 @@ def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blue
             plt.show()
 
 
-def feature_plot(adata, pathway=None, key='average', cells='all',
+@plot_function()
+def feature_plot(adata, pathway=None, key='average', cells='all', groupby='clusters', basis='umap',
                  figsize=(6,3), showfig=False, savefig=True, figname='single_path_role.pdf', format='pdf'):
-    if cells!='all':
-        adata_sel = adata[adata.obs['final.clusters']==cells].copy()
+    '''Total ligand and receptor expression of a pathway on an embedding.
 
-    if key=='average':
-        lig, rec = adata.uns['pathways'][pathway]['ligands'], adata.uns['pathways'][pathway]['receptors']
-        lig_arr = np.sum(adata_sel[:, lig].X.toarray(), axis=1)
-        rec_arr = np.sum(adata_sel[:, rec].X.toarray(), axis=1)
+    Parameters
+    ----------
+    adata: scRNA-seq data object
+    pathway: pathway of interest
+    key: only 'average' (sum of ligand / receptor expression) is supported
+    cells: 'all' or a value of adata.obs[groupby] to plot only those cells
+    groupby: adata.obs key used to select cells when cells != 'all'
+    basis: embedding in adata.obsm['X_' + basis] (default='umap')
+    '''
+    if key != 'average':
+        raise ValueError("feature_plot currently supports only key='average'.")
+    adata_sel = adata if cells == 'all' else adata[adata.obs[groupby] == cells].copy()
+
+    lig, rec = adata.uns['pathways'][pathway]['ligands'], adata.uns['pathways'][pathway]['receptors']
+    X_lig, X_rec = adata_sel[:, lig].X, adata_sel[:, rec].X
+    lig_arr = np.asarray(X_lig.sum(axis=1)).ravel()
+    rec_arr = np.asarray(X_rec.sum(axis=1)).ravel()
 
     figure = plt.figure(figsize=figsize)
 
     ax = plt.subplot(121)
     plt.axis('off')
-    plt.scatter(adata_sel.obsm['X_umap'][:,0], adata_sel.obsm['X_umap'][:,1], c=lig_arr, cmap='Reds', s=10)
+    plt.scatter(adata_sel.obsm['X_' + basis][:,0], adata_sel.obsm['X_' + basis][:,1], c=lig_arr, cmap='Reds', s=10)
     plt.title(pathway+' ligands')
 
     ax = plt.subplot(122)
     plt.axis('off')
-    plt.scatter(adata_sel.obsm['X_umap'][:, 0], adata_sel.obsm['X_umap'][:, 1], c=rec_arr, cmap='Reds', s=10)
+    plt.scatter(adata_sel.obsm['X_' + basis][:, 0], adata_sel.obsm['X_' + basis][:, 1], c=rec_arr, cmap='Reds', s=10)
     plt.title(pathway+' receptors')
 
     plt.tight_layout()
     if savefig:
         plt.savefig(figname, format=format)
     if showfig:
-        plt.showfig()
+        plt.show()

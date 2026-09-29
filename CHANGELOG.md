@@ -58,6 +58,31 @@
 - `tl.pathways_overview` scans pathways in sorted order (deterministic across Python sessions).
 - `tl.import_database`: `input_target` default changed from a mutable `{}` to `None`.
 
+### Plotting interface (Phase 3, `scrich.pl`)
+- `scrich/plots` reorganised by task like `scrich/tools`: `pathways.py`, `modes.py`, `heterogeneity.py`,
+  `patterns.py`, `ccc.py`, `flows.py` (alluvial), `velocity.py` and the private `_utils.py`; the unused
+  `pst_overview` was removed and the neighbour-fraction computations moved to `tools/_utils.py`.
+- **scanpy-style arguments for every plot**: `show=None` (follows the new `scrich.settings.autoshow`, True by
+  default), `return_fig=False`, and `ax=` for single-panel plots. With `show=False` the axes (or list of axes;
+  the plotly figure for alluvial plots) are returned; save with `ax.figure.savefig('plot.pdf')`.
+  **Plots are now shown and never saved by default** (previously most plots saved a file into the working
+  directory and were not shown).
+- The old `savefig`, `showfig`, `figname`, `format` and `dpi` arguments still work with a FutureWarning.
+  Renamed arguments with deprecated aliases: `heatmap_one_pathway(annotation=)` -> `key`,
+  `scatter2D(legens_pos=)` -> `legend_pos`, `pattern(human=)` -> `species`.
+- `basis=` (default `'umap'`) in all embedding plots (`scatter2D`, `pathway_umap`, `feature_plot`,
+  `coarse_grained_map`, `expr_map`, `top_players_map`), which previously required `adata.obsm['X_umap']`.
+- `heatmap_one_pathway` no longer changes matplotlib's global colour cycle.
+- `chord_diagram` has `show=` and returns the d3blocks object.
+- **plotly and seaborn are optional**: `pip install 'scrich[alluvial]'` (plotly + kaleido) for alluvial plots;
+  seaborn is part of the `velocity` extra. `import scrich` works without them.
+- Plot fixes found while testing every function: `feature_plot` failed with the default `cells='all'` and
+  called `plt.showfig()` (new `groupby` argument replaces the hard-coded `'final.clusters'`);
+  `top_players_map` failed on gene lists and never computed receptor weights; `coarse_grained_map` failed with
+  numeric mode labels; `heterogeneity_heatmap` failed when some pathways were not analysed; `plot_maps` with
+  `mode_to_plot=<mode>` drew stray panels, and `plot_maps` / `sign_prob_plot` failed with more than 5 / 3 modes;
+  `expr_map` no longer requires targets; `sign_prob_plot` etc. draw on the given `ax`.
+
 ### Fixes
 - `pl.pattern(..., human=True)` read the *receptor* table as ligands; now reads the ligand table.
 - `tl.all_path_sim(..., target=True, human=False)` loaded the human TF database; it now uses mouse.

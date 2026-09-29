@@ -27,6 +27,6 @@ def test_plots_with_many_patterns(adata_mouse):
     adata.obs["sign_pattern"] = pd.Categorical(rng.integers(0, 30, adata.n_obs).astype(str))
     adata.obs["many_modes"] = pd.Categorical(rng.integers(0, 12, adata.n_obs).astype(str))
     adata.obsm["X_umap"] = rng.normal(size=(adata.n_obs, 2))
-    ri.pl.pattern_summary(adata, "celltype", panel_per_row=5, savefig=False, showfig=False)
-    ri.pl.scatter2D(adata, "many_modes", savefig=False, showfig=False)
+    ri.pl.pattern_summary(adata, "celltype", panel_per_row=5, show=False)
+    ri.pl.scatter2D(adata, "many_modes", show=False)
     plt.close("all")

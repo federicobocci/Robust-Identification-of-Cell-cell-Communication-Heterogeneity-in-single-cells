@@ -36,8 +36,9 @@ pip install -e ".[tutorials]"
 
 **With conda**: `conda env create -f environment.yml && conda activate scrich`
 
-Optional extras: `velocity` (scvelo, for RNA-velocity functions), `chord` (d3blocks, for
-`scrich.pl.chord_diagram`), `tutorials` (both + JupyterLab + LIANA), `dev` (pytest, ruff).
+Optional extras: `velocity` (scvelo + seaborn, for RNA-velocity functions and plots), `alluvial` (plotly +
+kaleido, for `scrich.pl.alluvial_*`), `chord` (d3blocks, for `scrich.pl.chord_diagram`), `tutorials` (all of
+these + JupyterLab + LIANA), `dev` (pytest, ruff).
 A plain `pip install -e .` installs only the core package.
 
 ## Databases
@@ -79,7 +80,14 @@ ri.tl.permutation_testing(adata, key="celltype")
 ri.pl.pathway_heterogeneity_summary(adata, key="celltype")
 ```
 
-Progress messages can be reduced with `ri.set_verbosity("warning")`.
+Plots are shown by default and never saved automatically. To keep a plot, return it and save it:
+
+```python
+ax = ri.pl.single_pathway_heterogeneity(adata, "IGF", "celltype", show=False)
+ax.figure.savefig("IGF_heterogeneity.pdf")
+```
+
+Use `ri.settings.autoshow = False` in scripts, and `ri.set_verbosity("warning")` to reduce progress messages.
 
 ## Tutorials
 

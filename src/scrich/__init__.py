@@ -14,10 +14,11 @@ from importlib.metadata import version as _version
 
 from . import db, pl, tl
 from ._logging import set_verbosity
+from ._settings import settings
 
 try:
     __version__ = _version("scrich")
 except PackageNotFoundError:  # running from a source checkout without installation
     __version__ = "0.0.0"
 
-__all__ = ["tl", "pl", "db", "set_verbosity", "__version__"]
+__all__ = ["tl", "pl", "db", "settings", "set_verbosity", "__version__"]
