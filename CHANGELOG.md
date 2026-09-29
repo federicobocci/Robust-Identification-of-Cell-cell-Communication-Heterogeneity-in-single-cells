@@ -53,11 +53,10 @@
   `target=True`, `tl.consensus_clustering` (new argument `target`) now also clusters on the downstream genes,
   so they are used consistently for both the number of modes and the mode assignment. Pathways without
   expressed downstream genes use ligands/receptors only (`adata.uns['pathways'][p]['uses_targets']`).
-- **`tl.consensus_clustering` now uses the same `neighbor_average` setting as the similarity matrix**
-  (new argument, passed on by `tl.all_path_sim`). Previously the modes were always assigned from unsmoothed
-  expression even when the similarity matrix used neighbour-averaged expression. **This changes the modes
-  (and everything downstream) when `neighbor_average=True`**, as in the tutorials. `adata.obs[p + '_rec']`,
-  `'_lig'` and `'_tar'` still store the unsmoothed values.
+- `tl.consensus_clustering` has a new `neighbor_average` argument (default False) to assign modes from
+  neighbour-averaged expression; `tl.all_path_sim` exposes it as `consensus_neighbor_average` (default False).
+  Defaults keep the v0.1.0 behaviour: the similarity matrix follows `neighbor_average`, while the final mode
+  assignment uses unsmoothed expression.
 - Removed unused code: `cellchat_DB`, `layer_3_DB`, `get_targets`, and the unused kinetic functions
   (`K1`, `K1_RNAVel`, `K2`, `beta_RNAVel`, `gamma`, `P_pair_LRU_RNAVel`, `P_pair_LRD`, `P_pair_all`).
   `tl.pathway_strength` and `tl.compute_ccc_matrix_CellchatBenchmark` were removed from the package and kept

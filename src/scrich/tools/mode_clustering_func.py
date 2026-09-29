@@ -563,7 +563,8 @@ def select_pathways(adata, human=True, method='expression', n=10):
     adata.uns['selected_pathways'] = sel_path
 
 def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, human=True, moments=False,
-                 neighbor_average=False, method='expression', pathways_to_use=10, top_target=10, order=None, seed=100, print_info=False):
+                 neighbor_average=False, method='expression', pathways_to_use=10, top_target=10, order=None, seed=100, print_info=False,
+                 consensus_neighbor_average=False):
     '''Loop the clustering based on cell-cell communication to all pathways identified in the dataset
 
     Parameters
@@ -574,6 +575,9 @@ def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, human
         both for the similarity matrix and for the final consensus clustering of modes (default=False)
     top_target: number of downstream genes per pathway used when target=True (default=10)
     human: if True use the human database, otherwise mouse
+    neighbor_average: if True, average expression over each cell's neighbours for the similarity matrix
+    consensus_neighbor_average: if True, also use neighbour-averaged expression for the final consensus clustering
+        of modes (default=False, i.e. modes are assigned from unsmoothed expression as in v0.1.0)
     order: deprecated, has no effect
     seed: random seed for the consensus clustering
 
@@ -605,7 +609,7 @@ def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, human
         # use targets only for pathways where single_path_sim could use them (some have no expressed downstream genes)
         uses_targets = target and adata.uns['pathways'][p].get('uses_targets', False)
         consensus_clustering(adata, p, annotations, n_cluster='optimal', order=order, seed=seed, target=uses_targets,
-                             neighbor_average=neighbor_average)
+                             neighbor_average=consensus_neighbor_average)
     print(adata.uns.keys(), '4')
 
 def permutation_testing(adata, key='seurat_clusters', n_sample = 10000, perm_threshold=0.05):
