@@ -36,6 +36,13 @@
   extended automatically (new helper `scrich.plots._colors.discrete_colors`).
 - `tl.find_sign_patterns` prints how many patterns were found at the chosen resolution and the number
   of cells in each (new argument `print_info=True`).
+- `tl.find_sign_patterns`: the number of neighbours is now an argument, `n_neighbors`, with default **30**
+  (previously fixed at 10). With 10 neighbours the cell graph often splits into many disconnected pieces
+  because many cells share identical mode combinations, so the number of patterns depended on library
+  versions and random seeds rather than on `res`. New argument `random_state` (neighbour search, UMAP,
+  Leiden); the function now reports the number of graph pieces, warns when there is more than one, and
+  stores its parameters in `adata.uns['sign_pattern_params']`. **This changes results compared to v0.1.0**;
+  use `n_neighbors=10` to reproduce the previous setting.
 - The `velocity` extra caps `numpy<2.4`: scvelo 0.3.4 fails in `scv.tl.velocity` with NumPy ≥ 2.4.
 - `KMeans` now sets `n_init=10` explicitly, the default of scikit-learn < 1.4 used in the paper.
   (Newer scikit-learn defaults to a single initialisation, which changed the clustering.)
