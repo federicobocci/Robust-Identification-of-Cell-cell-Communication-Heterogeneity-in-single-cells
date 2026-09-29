@@ -9,18 +9,13 @@ from matplotlib.collections import PatchCollection
 import pandas as pd
 
 from .._optional import LazyModule
+from ..tools._utils import extract_neighbors, neighbor_avg
 from ._colors import discrete_colors
 
 scv = LazyModule("scvelo", extra="velocity")
 
 from seaborn import kdeplot
 
-
-def extract_neighbors(adata, key='distances'):
-    assert key == 'distances' or key == 'connectivities', "Please choose between key=='distances' or key=='connectivities'"
-    dist = adata.obsp[key]
-    neighbors = [dist[i].indices for i in range(adata.shape[0])]
-    return neighbors
 
 
 def compute_sign_prob(adata, pathway, key='distances'):
@@ -49,17 +44,6 @@ def compute_pattern_prob(adata, key='distances'):
         sign_prob[i] = counts
     return unique_modes, sign_prob
 
-def neighbor_avg(v, neigh):
-    v_avg = np.zeros(v.size)
-    for i in range(v_avg.size):
-        neigh_v = v[neigh[i]]
-        v_avg[i] = np.mean(neigh_v)
-    return v_avg
-
-
-###################################
-#
-# RNA velocity-related functions
 
 def plot_maps(adata, pathway, key='distances', basis='umap', panel_height = 4, panel_length = 4,
               linewidth=0.5, arrow_style='->', mode_to_plot='all', fontsize=7,

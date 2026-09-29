@@ -12,8 +12,8 @@ from .alluvial import alluvial_onepath, alluvial_twopath, alluvial_pattern
 
 from .similarity import redundancy, pathway_hierarchy
 
-from .velocity import (plot_maps, sign_prob_plot, state_dist_pst, expr_map, coarse_grained_map, extract_neighbors,
-                       neighbor_avg, top_players_map, pattern_plot, pattern_prob_plot)
+from .velocity import (plot_maps, sign_prob_plot, state_dist_pst, expr_map, coarse_grained_map,
+                       top_players_map, pattern_plot, pattern_prob_plot)
 
 from .signaling_patterns import pattern, pattern_summary
 

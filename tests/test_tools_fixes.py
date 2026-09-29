@@ -5,7 +5,7 @@ import pytest
 import scipy.sparse as sp
 
 import scrich as ri
-from scrich.tools.tf_tar_functions import get_counts
+from scrich.tools.targets import get_counts
 
 
 def _modes(adata, **kw):
@@ -91,7 +91,7 @@ def test_all_path_sim_with_targets(adata_mouse, exfinder_dir):
 
 
 def test_consensus_clustering_uses_targets(adata_mouse):
-    from scrich.tools.mode_clustering_func import consensus_clustering
+    from scrich.tools.modes import consensus_clustering
 
     ri.tl.pathways_overview(adata_mouse, human=False)
     p = list(adata_mouse.uns["pathways"])[0]
@@ -111,14 +111,15 @@ def test_consensus_clustering_uses_targets(adata_mouse):
 def test_target_default_is_false():
     import inspect
 
-    from scrich.tools.mode_clustering_func import consensus_clustering
+    from scrich.tools.modes import consensus_clustering
 
     for f in (ri.tl.all_path_sim, ri.tl.single_path_sim, consensus_clustering):
         assert inspect.signature(f).parameters["target"].default is False
 
 
 def test_consensus_clustering_neighbor_average(adata_mouse):
-    from scrich.tools.mode_clustering_func import consensus_clustering, extract_neighbors, neighbor_avg
+    from scrich.tools._utils import extract_neighbors, neighbor_avg
+    from scrich.tools.modes import consensus_clustering
 
     ri.tl.pathways_overview(adata_mouse, human=False)
     p = list(adata_mouse.uns["pathways"])[0]

@@ -25,6 +25,17 @@
   checksums, fetched with pooch and cached. Local copies via `SCRICH_DATA_DIR`.
 - Removed hard-coded relative paths (`../../exfinder_database/...`, `pathway_database/...`).
 
+### Code organisation (Phase 3)
+- `scrich/tools` reorganised by task (no change in results or in the `scrich.tl` API):
+  `pathways.py` (pathway selection, ligand/receptor lookup), `modes.py` (similarity matrix, number of modes,
+  consensus clustering), `heterogeneity.py` (fraction matrix, heterogeneity score, permutation test),
+  `patterns.py` (signaling patterns, mutual information), `ccc.py` (CCC matrix), `targets.py` (downstream
+  genes), `annotations.py` (renaming) and the private `_utils.py`. Replaces `mode_clustering_func.py`,
+  `database_func.py`, `sign_patterns.py`, `similarity.py`, `misc_functions.py`, `signaling_func.py` and
+  `tf_tar_functions.py`.
+- `extract_neighbors` / `neighbor_avg` are defined once in `tools/_utils.py` (the copy in `plots/velocity.py`
+  was removed).
+
 ### Fixes
 - `pl.pattern(..., human=True)` read the *receptor* table as ligands; now reads the ligand table.
 - `tl.all_path_sim(..., target=True, human=False)` loaded the human TF database; it now uses mouse.

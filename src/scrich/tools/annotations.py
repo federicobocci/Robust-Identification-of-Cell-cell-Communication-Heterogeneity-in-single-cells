@@ -1,8 +1,8 @@
-'''
-miscellanea functions for the package
-'''
+"""Renaming of communication modes and cell annotations."""
+
 import numpy as np
 import pandas as pd
+
 
 def rename_modes(adata, pathway, mode_dict):
     '''Rename CCC modes of a pathway
@@ -36,6 +36,7 @@ def rename_modes(adata, pathway, mode_dict):
     new_order = list(dict.fromkeys(mapping.values()))
     new_values = [mapping[m] for m in np.asarray(col)]
     adata.obs[pathway + '_modes'] = pd.Categorical(new_values, categories=new_order)
+
 
 def rename_cells(adata, cell_dict, key='clusters'):
     '''Rename cell annotations

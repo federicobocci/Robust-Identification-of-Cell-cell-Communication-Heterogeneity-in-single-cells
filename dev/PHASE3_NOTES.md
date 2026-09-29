@@ -52,8 +52,7 @@ old code/Python 3.9/paper environment vs new code/Python 3.12/current libraries.
 - `assert` used for input validation → raise `ValueError` / `KeyError` with clear messages.
 - `human=True/False` in some functions and `species='human'/'mouse'` in others → use `species`
   everywhere (keep `human` as a deprecated alias for one release).
-- Duplicated helpers: `extract_neighbors` / `neighbor_avg` exist in both
-  `tools/mode_clustering_func.py` and `plots/velocity.py`.
+- [FIXED] Duplicated helpers `extract_neighbors` / `neighbor_avg` (now only in `tools/_utils.py`).
 - Global `warnings.simplefilter('ignore', FutureWarning)` in `mode_clustering_func.py` hides
   warnings for the user's whole session.
 - `ruff check src` reports ~120 issues in legacy modules (mostly unused imports/variables).

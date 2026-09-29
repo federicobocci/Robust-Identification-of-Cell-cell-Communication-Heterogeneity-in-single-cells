@@ -4,12 +4,12 @@
 - ``compute_ccc_matrix_CellchatBenchmark``: CCC matrix on cell annotations only, used for benchmarking
   against CellChat. Note: it computes ``ccc_mat`` but never stores it.
 
-They depend on ``sign_combs`` from ``scrich.tools.signaling_func``.
+They depend on ``sign_combs`` from ``scrich.tools.ccc``.
 """
 import numpy as np
 import pandas as pd
 
-from scrich.tools.signaling_func import sign_combs
+from scrich.tools.ccc import sign_combs
 
 def pathway_strength(adata, pathway, key='clusters'):
     '''Computes the overall incoming and outgoing pathway strength from the CCC matrix (currently not used).

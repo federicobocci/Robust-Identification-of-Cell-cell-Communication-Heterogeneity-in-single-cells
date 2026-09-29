@@ -1,5 +1,6 @@
+"""Cell-cell communication (CCC) matrix between cell states and communication modes."""
+
 import numpy as np
-import pandas as pd
 from numba import jit
 
 ############################################################################

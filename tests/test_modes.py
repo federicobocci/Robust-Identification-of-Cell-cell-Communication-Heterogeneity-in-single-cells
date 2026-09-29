@@ -3,8 +3,8 @@ import numpy as np
 import pandas as pd
 
 import scrich as ri
-from scrich.tools.mode_clustering_func import cci_heterogeneity
-from scrich.tools.sign_patterns import _mode_codes
+from scrich.tools.heterogeneity import cci_heterogeneity
+from scrich.tools._utils import _mode_codes
 
 
 def _with_fraction(frac):

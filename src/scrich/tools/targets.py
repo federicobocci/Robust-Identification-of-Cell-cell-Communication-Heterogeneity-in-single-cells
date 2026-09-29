@@ -1,6 +1,4 @@
-'''
-functions to parse through the exfinder database
-'''
+"""Downstream genes (transcription factors) of CCC pathways from the exFinder database."""
 
 import numpy as np
 import pandas as pd
@@ -69,6 +67,7 @@ def get_counts(adata, unspliced=False):
     count_df = pd.DataFrame.from_dict({'gene':genes, 'avg_count':counts})
     return count_df
 
+
 def select_top_tf(count_df, tf_list, n=10):
     '''
     Select the top transcription factors of a pathway that are highly expressed in the dataset
@@ -132,6 +131,3 @@ def import_database(adata, pathways, top=10, unspliced=False, species='human', i
         tf_dict[p] = select_top_tf(count_df, tf_list, n=top)
 
     adata.uns['TF'] = tf_dict
-
-
-
