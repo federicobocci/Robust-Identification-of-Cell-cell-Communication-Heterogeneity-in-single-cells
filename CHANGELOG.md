@@ -49,6 +49,10 @@
   `import_database` (`adata.uns['TF']`), passes `unspliced=moments` to it, applies neighbour averaging to them
   like ligands/receptors, and falls back to ligands/receptors (with a warning) for pathways with no expressed
   downstream genes.
+- `target` now defaults to **False** in `tl.all_path_sim` and `tl.single_path_sim` (was True). With
+  `target=True`, `tl.consensus_clustering` (new argument `target`) now also clusters on the downstream genes,
+  so they are used consistently for both the number of modes and the mode assignment. Pathways without
+  expressed downstream genes use ligands/receptors only (`adata.uns['pathways'][p]['uses_targets']`).
 - Removed unused code: `cellchat_DB`, `layer_3_DB`, `get_targets`, and the unused kinetic functions
   (`K1`, `K1_RNAVel`, `K2`, `beta_RNAVel`, `gamma`, `P_pair_LRU_RNAVel`, `P_pair_LRD`, `P_pair_all`).
   `tl.pathway_strength` and `tl.compute_ccc_matrix_CellchatBenchmark` were removed from the package and kept

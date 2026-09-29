@@ -88,3 +88,30 @@ def test_all_path_sim_with_targets(adata_mouse, exfinder_dir):
         assert p + "_modes" in a.obs
         if len(a.uns["TF"][p]) > 0:
             assert p + "_tar" in a.obs
+
+
+def test_consensus_clustering_uses_targets(adata_mouse):
+    from scrich.tools.mode_clustering_func import consensus_clustering
+
+    ri.tl.pathways_overview(adata_mouse, human=False)
+    p = list(adata_mouse.uns["pathways"])[0]
+    ri.tl.single_path_sim(adata_mouse, p, print_info=False)
+    # a target signal with a clear two-group split that dominates ligand/receptor expression
+    split = (np.arange(adata_mouse.n_obs) % 2).astype(bool)
+    adata_mouse.obs[p + "_tar"] = np.where(split, 100.0, 0.0)
+    consensus_clustering(adata_mouse, p, "celltype", n_cluster=2, target=True)
+    modes = np.asarray(adata_mouse.obs[p + "_modes"])
+    assert len(set(modes[split])) == 1 and len(set(modes[~split])) == 1
+
+    del adata_mouse.obs[p + "_tar"]
+    with pytest.raises(ValueError, match="_tar"):
+        consensus_clustering(adata_mouse, p, "celltype", n_cluster=2, target=True)
+
+
+def test_target_default_is_false():
+    import inspect
+
+    from scrich.tools.mode_clustering_func import consensus_clustering
+
+    for f in (ri.tl.all_path_sim, ri.tl.single_path_sim, consensus_clustering):
+        assert inspect.signature(f).parameters["target"].default is False
