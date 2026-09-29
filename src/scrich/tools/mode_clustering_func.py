@@ -465,7 +465,8 @@ def consensus_clustering(adata,
                          n_cluster='optimal',
                          order=None,
                          seed=100,
-                         target=False
+                         target=False,
+                         neighbor_average=False
                          ):
     '''Computes consensus clustering based on ligand/receptor (and optionally downstream gene) expression of a pathway
     Results are stored in adata.obs
@@ -478,6 +479,8 @@ def consensus_clustering(adata,
     seed: seed for random umber generator (default=100)
     target: if True, also cluster on the expression of the pathway's downstream genes (adata.obs[pathway + '_tar'],
         computed by single_path_sim with target=True) (default=False)
+    neighbor_average: if True, average expression over each cell's neighbours (adata.obsp['distances']) before
+        clustering, as done for the similarity matrix in single_path_sim (default=False)
 
     Returns
     -------
@@ -494,6 +497,12 @@ def consensus_clustering(adata,
         dat = np.array([rec_exp, lig_exp, tar_exp]).transpose()
     else:
         dat = np.array([rec_exp, lig_exp]).transpose()
+
+    if neighbor_average:
+        # same smoothing as used for the similarity matrix; adata.obs keeps the unsmoothed values
+        neigh = extract_neighbors(adata)
+        dat = np.array([neighbor_avg(col, neigh) for col in dat.T]).transpose()
+    adata.uns['pathways'][pathway]['neighbor_average'] = bool(neighbor_average)
 
     # run clustering with chosen number of clusters
     if n_cluster=='optimal':
@@ -595,7 +604,8 @@ def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, human
         print('running consensus')
         # use targets only for pathways where single_path_sim could use them (some have no expressed downstream genes)
         uses_targets = target and adata.uns['pathways'][p].get('uses_targets', False)
-        consensus_clustering(adata, p, annotations, n_cluster='optimal', order=order, seed=seed, target=uses_targets)
+        consensus_clustering(adata, p, annotations, n_cluster='optimal', order=order, seed=seed, target=uses_targets,
+                             neighbor_average=neighbor_average)
     print(adata.uns.keys(), '4')
 
 def permutation_testing(adata, key='seurat_clusters', n_sample = 10000, perm_threshold=0.05):

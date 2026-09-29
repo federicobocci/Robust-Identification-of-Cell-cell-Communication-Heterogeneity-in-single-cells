@@ -115,3 +115,25 @@ def test_target_default_is_false():
 
     for f in (ri.tl.all_path_sim, ri.tl.single_path_sim, consensus_clustering):
         assert inspect.signature(f).parameters["target"].default is False
+
+
+def test_consensus_clustering_neighbor_average(adata_mouse):
+    from scrich.tools.mode_clustering_func import consensus_clustering, extract_neighbors, neighbor_avg
+
+    ri.tl.pathways_overview(adata_mouse, human=False)
+    p = list(adata_mouse.uns["pathways"])[0]
+    ri.tl.single_path_sim(adata_mouse, p, print_info=False)
+    rec_before = np.asarray(adata_mouse.obs[p + "_rec"]).copy()
+    # smoothed ligand signal with a clear split that dominates; unsmoothed it is noise around it
+    neigh = extract_neighbors(adata_mouse)
+    rng = np.random.default_rng(0)
+    group = np.asarray(adata_mouse.obs["celltype"]) == "T0"
+    adata_mouse.obs[p + "_lig"] = np.where(group, 50.0, 0.0) + rng.normal(0, 200, adata_mouse.n_obs)
+    adata_mouse.obs[p + "_rec"] = 0.0
+    consensus_clustering(adata_mouse, p, "celltype", n_cluster=2, neighbor_average=True)
+    modes = np.asarray(adata_mouse.obs[p + "_modes"])
+    smoothed = neighbor_avg(np.asarray(adata_mouse.obs[p + "_lig"]), neigh)
+    # modes follow the smoothed signal
+    assert abs(np.corrcoef(modes, smoothed > np.median(smoothed))[0, 1]) > 0.9
+    assert adata_mouse.uns["pathways"][p]["neighbor_average"] is True
+    assert np.all(np.asarray(adata_mouse.obs[p + "_rec"]) == 0.0)  # obs values not overwritten
