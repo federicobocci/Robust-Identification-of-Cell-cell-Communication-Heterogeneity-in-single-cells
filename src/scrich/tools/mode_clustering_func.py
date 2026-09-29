@@ -390,6 +390,13 @@ def state_fractions(adata, pathway, annotations, order=None):
 def cci_heterogeneity(adata, pathway):
     '''Compute the ccc heterogeneity score for a given pathway, saved in adata.uns['pathways'][pathway]['cci_heterogeneity']
 
+    For each cell type, the distribution of its cells across communication modes is compared with the
+    distribution of all cells. The score is 1 minus the average normalized deviation between the two:
+    it is close to 1 when the cell type contains the modes in the same proportions as the whole
+    population (heterogeneous), and close to 0 when its mode composition deviates maximally from it
+    (e.g. all cells of the type in a single, otherwise rare, mode).
+    Versions up to 0.1.0 stored the deviation itself (i.e. 1 - score).
+
     Parameters
     ----------
     adata: scRNA-seq data object
@@ -414,7 +421,7 @@ def cci_heterogeneity(adata, pathway):
             else:
                 s = mode_density[i]
             v[j] = v[j] + np.abs(rho[i] - mode_density[i]) / s
-    v = v / mode_density.size
+    v = 1 - v / mode_density.size
 
     adata.uns['pathways'][pathway]['cci_heterogeneity'] = v
 

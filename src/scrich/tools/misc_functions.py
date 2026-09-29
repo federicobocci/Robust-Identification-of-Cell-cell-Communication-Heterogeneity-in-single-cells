@@ -2,6 +2,7 @@
 miscellanea functions for the package
 '''
 import numpy as np
+import pandas as pd
 
 def rename_modes(adata, pathway, mode_dict):
     '''Rename CCC modes of a pathway
@@ -10,15 +11,31 @@ def rename_modes(adata, pathway, mode_dict):
     ----------
     adata: scRNA-seq data object
     pathway: pathways whose mode are renamed
-    mode_dict: dictionary with new CCC mode names
+    mode_dict: dictionary mapping old mode labels to new names, e.g. {0: 'Receiver', 1: 'Inactive'}.
+        Modes not in the dictionary keep their label. Several modes can be given the same name to merge them.
 
     Returns
     -------
     None
 
     '''
-    old_mode = np.asarray(adata.obs[pathway + '_modes'])
-    adata.obs[pathway + '_modes'] = [mode_dict[o] for o in old_mode]
+    col = adata.obs[pathway + '_modes']
+    if isinstance(col.dtype, pd.CategoricalDtype):
+        old_order = list(col.cat.categories)
+    else:
+        old_order = sorted(pd.unique(col))
+    # modes missing from mode_dict keep their name; the original mode order is preserved, so the
+    # underlying integer codes (used e.g. by find_sign_patterns) do not change when modes are renamed
+    def new_name(m):
+        return mode_dict.get(m, mode_dict.get(str(m), m))
+
+    mapping = {m: new_name(m) for m in old_order}
+    # avoid mixing numbers and strings (e.g. only some modes renamed), which breaks sorting and plotting
+    if any(isinstance(v, str) for v in mapping.values()):
+        mapping = {m: str(v) for m, v in mapping.items()}
+    new_order = list(dict.fromkeys(mapping.values()))
+    new_values = [mapping[m] for m in np.asarray(col)]
+    adata.obs[pathway + '_modes'] = pd.Categorical(new_values, categories=new_order)
 
 def rename_cells(adata, cell_dict, key='clusters'):
     '''Rename cell annotations

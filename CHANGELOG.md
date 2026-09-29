@@ -36,6 +36,15 @@
   extended automatically (new helper `scrich.plots._colors.discrete_colors`).
 - `tl.find_sign_patterns` prints how many patterns were found at the chosen resolution and the number
   of cells in each (new argument `print_info=True`).
+- **Cell-type heterogeneity score corrected** (`tl.consensus_clustering` / `cci_heterogeneity`): the score
+  was inverted. It is now `1 - mean normalized deviation`: close to 1 when a cell type contains the
+  communication modes in the same proportions as the whole population, close to 0 when its composition
+  deviates maximally. Values from v0.1.0 correspond to `1 - score`.
+- `tl.rename_modes` stores modes as an ordered categorical that keeps the original mode order. Modes not in
+  the dictionary keep their label (as strings if any new name is a string), and several modes can be merged
+  by giving them the same name. Renaming again with the new names works.
+- `tl.find_sign_patterns` works after `rename_modes` (and with any mode labels); one-to-one renaming gives
+  exactly the same patterns as before renaming.
 - `tl.find_sign_patterns`: the number of neighbours is now an argument, `n_neighbors`, with default **30**
   (previously fixed at 10). With 10 neighbours the cell graph often splits into many disconnected pieces
   because many cells share identical mode combinations, so the number of patterns depended on library

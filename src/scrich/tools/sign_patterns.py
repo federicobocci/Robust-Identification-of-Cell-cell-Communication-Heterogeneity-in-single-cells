@@ -2,8 +2,23 @@ import warnings
 
 import anndata
 import numpy as np
+import pandas as pd
 import scanpy as sc
 from scipy.sparse.csgraph import connected_components
+
+
+def _mode_codes(col):
+    """Integer codes of the communication modes of one pathway.
+
+    Integer labels (as produced by the clustering) are used as they are. Modes renamed with
+    rename_modes() are categorical and keep their original order, so they give the same codes
+    as before renaming. Other labels (e.g. strings) are numbered in sorted order.
+    """
+    if isinstance(col.dtype, pd.CategoricalDtype):
+        return np.asarray(col.cat.codes, dtype=float)
+    if pd.api.types.is_numeric_dtype(col):
+        return np.asarray(col, dtype=float)
+    return pd.Categorical(col, categories=sorted(pd.unique(col))).codes.astype(float)
 
 
 def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0, seed=42, print_info=True):
@@ -41,7 +56,7 @@ def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0
 
     sel_data = np.zeros((npath, ncell))
     for i in range(len(paths)):
-        sel_data[i] = adata.obs[paths[i]+'_modes']
+        sel_data[i] = _mode_codes(adata.obs[paths[i] + '_modes'])
 
     path_adata = anndata.AnnData(X=sel_data.transpose())
     path_adata.obs_names = adata.obs_names
