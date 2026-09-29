@@ -268,6 +268,26 @@ def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blue
             plt.savefig(figname, format=format, dpi=300)
 
 
+
+def _fraction_matrix(adata, pathway, key, order=None):
+    """Fraction matrix of a pathway (modes x cell types) with its labels, columns in the requested order.
+
+    Cell types are stored in sorted order (adata.uns['pathways'][pathway]['cell_types']); ``order``
+    only changes how they are displayed.
+    """
+    frac = np.asarray(adata.uns['fraction_mat'][pathway])
+    info = adata.uns['pathways'].get(pathway, {})
+    cell_types = list(info.get('cell_types', sorted(set(adata.obs[key]))))
+    modes = list(info.get('modes', range(frac.shape[0])))
+    if order is None:
+        return frac, modes, cell_types
+    order = list(order)
+    missing = [c for c in order if c not in cell_types]
+    if missing:
+        raise ValueError(f"order contains unknown cell types: {missing}")
+    return frac[:, [cell_types.index(c) for c in order]], modes, order
+
+
 def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False, legend_loc_top='best', legend_loc_right='best',
                         ncol_top=1, ncol_right=1, ylim_top=False, xlim_right=False, legend_font=10,
                         plot_figure=True, showfig=False, savefig=True, figname='types_table.pdf', format='pdf', width=6, height=6):
@@ -278,17 +298,8 @@ def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False
     # order of clusters as input
     # use another colormap for the modes
 
-    labs = np.asarray(list(adata.obs[pathway + '_modes']))
-    lab_set = list(set(labs))
-    clusters = np.asarray(list(adata.obs[annotation]))
-    if order==None:
-        clst_set = sorted(list(set(clusters)))
-    else:
-        clst_set = list(np.asarray(order))
-
-
+    frac, lab_set, clst_set = _fraction_matrix(adata, pathway, annotation, order)
     ntypes, nclst = len(lab_set), len(clst_set)
-    frac = adata.uns['fraction_mat'][pathway]
 
     fig = plt.figure(figsize=(width, height))
 
@@ -317,7 +328,7 @@ def heatmap_one_pathway(adata, pathway, annotation, order=None, legend_top=False
     pt = plt.pcolor(np.transpose(frac) / np.sum(frac), cmap='Reds', vmin=0)
     plt.ylabel('Cell Type')
     plt.xlabel('Signaling Mode - ' + pathway)
-    plt.xticks(x, [str(i) for i in range(ntypes)])
+    plt.xticks(x, [str(m) for m in lab_set])
     plt.yticks(y, clst_set)
 
     # break down clusters based on types
@@ -560,15 +571,11 @@ def feature_plot(adata, pathway=None, key='average', cells='all',
 def mode_composition(adata, key, pathway, mode, order=None, rename_states=None, fontsize=7, ticksize=7,
                      figsize=(3,3), showfig=False, savefig=True, figname='mode_composition.pdf', format='pdf'):
     # plot the composition of a signaling mode - normalize based on the total number of cells in each cluster
-    frac = adata.uns['fraction_mat'][pathway]
+    frac, lab_set, clst_set = _fraction_matrix(adata, pathway, key, order)
     tot_cells = np.sum(frac, axis=0)
-    fracs = frac[mode]
-
-    clusters = np.asarray(list(adata.obs[key]))
-    if order == None:
-        clst_set = sorted(list(set(clusters)))
-    else:
-        clst_set = list(np.asarray(order))
+    # 'mode' can be the mode label (e.g. 'Receiver' after rename_modes) or its row index
+    row = lab_set.index(mode) if mode in lab_set else mode
+    fracs = frac[row]
     colors = discrete_colors(plt.cm.Accent, fracs.size)
 
     fig = plt.figure(figsize=figsize)

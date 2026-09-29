@@ -22,11 +22,11 @@ old code/Python 3.9/paper environment vs new code/Python 3.12/current libraries.
 
 ## Bugs
 
-1. `tools/tf_tar_functions.get_counts(unspliced=False)`: `np.mean(adata.X.toarray())` has no
+1. [FIXED] `tools/tf_tar_functions.get_counts(unspliced=False)`: `np.mean(adata.X.toarray())` has no
    `axis`, so every gene gets the same average and the "top TFs" are an arbitrary subset. It
    also fails on dense `X`. Should be `np.asarray(adata.X.mean(axis=0)).ravel()`. Tutorials use
    `unspliced=True`, which is not affected.
-2. `tl.all_path_sim(target=True)` calls `import_database`, which fills `adata.uns['TF']`,
+2. [FIXED] `tl.all_path_sim(target=True)` calls `import_database`, which fills `adata.uns['TF']`,
    but `single_path_sim` reads `adata.uns['targets']` → `KeyError`.
 3. `pl.heatmap_one_pathway(xlim_right=...)`: uses undefined `lim_right` → `NameError`
    (probably meant `plt.xlim([0, xlim_right])`).
@@ -36,7 +36,7 @@ old code/Python 3.9/paper environment vs new code/Python 3.12/current libraries.
    p-values are not reproducible.
 6. `spectral_analysis_opt`: `eigsh(..., which='SM')` without a fixed `v0` uses a random start
    vector; results can vary slightly between runs.
-7. `compute_ccc_matrix_CellchatBenchmark` checks `pathway + 'tar'` instead of `pathway + '_tar'`
+7. [MOVED to dev/unintegrated] `compute_ccc_matrix_CellchatBenchmark` checks `pathway + 'tar'` instead of `pathway + '_tar'`
    and never stores its result.
 
 ## Scalability

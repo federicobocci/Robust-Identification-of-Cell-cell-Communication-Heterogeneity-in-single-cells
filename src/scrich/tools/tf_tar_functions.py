@@ -7,29 +7,6 @@ import pandas as pd
 
 from .. import db
 
-def cellchat_DB(species='human'):
-    '''
-    Load the CellChat database and return as dictionaries of ligands and receptors
-
-    Parameters
-    ----------
-    species: human or mouse (default: human)
-
-    Returns
-    -------
-    lig_dct: dictionaru of ligands
-    rec_dct: dictionary of receptors
-
-    '''
-    CB = db.load_exfinder('cellchat', species=species)
-
-    lig_dct, rec_dct = {}, {}
-
-    pathways = list(set(list(CB['pathway_name'])))
-    for p in pathways:
-        lig_dct[p] = list(set(list(CB[CB['pathway_name'] == p]['ligand'])))
-        rec_dct[p] = list(set(list(CB[CB['pathway_name'] == p]['receptor'])))
-    return lig_dct, rec_dct
 
 def layer_2_DB(species='human'):
     '''
@@ -47,21 +24,6 @@ def layer_2_DB(species='human'):
     TDB = db.load_exfinder('rtf', species=species)
     return TDB
 
-def layer_3_DB(species='human'):
-    '''
-    Load the TF-target database and return it as a dataframe
-
-    Parameters
-    ----------
-    species: human or mouse (default: human)
-
-    Returns
-    -------
-    DB: pandas dataframe of TF-target interactions
-
-    '''
-    DB = db.load_exfinder('tft', species=species)
-    return DB
 
 def get_TF(rec_dct, tf_df, pathway):
     '''
@@ -69,8 +31,7 @@ def get_TF(rec_dct, tf_df, pathway):
 
     Parameters
     ----------
-    rec_dct: dictionary of receptors (output of cellchat_DB)
-    lig_dct: dictionary of ligands (output of cellchat_DB) - necessary if no receptor is in the database
+    rec_dct: dictionary of receptors per pathway
     tf_df: dataframe of transcription factor (output of layer_2_DB)
     pathway: pathway of interest
 
@@ -83,42 +44,27 @@ def get_TF(rec_dct, tf_df, pathway):
     tf_list = list(set(list(tf_df[tf_df['from'].isin(start_list)]['to'])))
     return tf_list
 
-def get_targets(tf_list, tar_df):
-    '''Extract the targets of TFs
-
-    Parameters
-    ----------
-    tf_list: list of TFs for the pathway
-    tar_df: dataframe linking transcription factor to taregt gene
-
-    Returns
-    -------
-    tar_list: list of target genes
-
-    '''
-    tar_list = list(set(list(tar_df[tar_df['from'].isin(tf_list)]['to'])))
-    return tar_list
 
 def get_counts(adata, unspliced=False):
-    '''
-    EXtract gene names and average counts (unspliced and spliced, imputated)
+    '''Average expression of every gene across cells
 
     Parameters
     ----------
     adata: anndata object
+    unspliced: if True, use the imputed unspliced + spliced layers (Mu + Ms), otherwise adata.X
 
     Returns
     -------
-    genes: list of gene names
-    counts: numpy array of average counts
+    count_df: dataframe with columns 'gene' and 'avg_count' (one row per gene)
 
     '''
     genes = list(adata.var_names)
 
     if unspliced:
-        counts = np.mean(adata.layers['Mu'] + adata.layers['Ms'], axis=0)
+        counts = np.asarray(adata.layers['Mu'].mean(axis=0) + adata.layers['Ms'].mean(axis=0)).ravel()
     else:
-        counts = np.mean(adata.X.toarray())
+        # per-gene mean; works for sparse and dense X
+        counts = np.asarray(adata.X.mean(axis=0)).ravel()
 
     count_df = pd.DataFrame.from_dict({'gene':genes, 'avg_count':counts})
     return count_df
@@ -173,7 +119,6 @@ def import_database(adata, pathways, top=10, unspliced=False, species='human', i
         rec_dct[p] = adata.uns['pathways'][p]['receptors']
 
     tf_df = layer_2_DB(species=species)
-    # target_df = layer_3_DB()
 
     # compute average gene count to select
     count_df = get_counts(adata, unspliced=unspliced)

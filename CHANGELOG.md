@@ -36,6 +36,23 @@
   extended automatically (new helper `scrich.plots._colors.discrete_colors`).
 - `tl.find_sign_patterns` prints how many patterns were found at the chosen resolution and the number
   of cells in each (new argument `print_info=True`).
+- **Cell-type order bug fixed**: passing `order=` to `tl.all_path_sim` / `tl.consensus_clustering` stored the
+  fraction matrix and heterogeneity scores in that order, while plots and `tl.permutation_testing` assumed
+  alphabetical order, so results could be shown under the wrong cell type. Results are now always stored in
+  sorted order, with labels in `adata.uns['pathways'][pathway]['cell_types']` and `['modes']`; `order` there
+  is deprecated (FutureWarning) and only the plotting functions' `order` changes the display.
+  `pl.heatmap_one_pathway` and `pl.mode_composition` reorder columns accordingly; `mode_composition` also
+  accepts a mode name, and the heatmap shows mode names.
+- `tl.import_database(unspliced=False)`: gene averages were a single number (missing `axis`), so the top
+  downstream genes were chosen arbitrarily. Now per-gene means (sparse or dense `X`).
+- `tl.all_path_sim(target=True)` crashed (`KeyError: 'targets'`). It now uses the downstream genes selected by
+  `import_database` (`adata.uns['TF']`), passes `unspliced=moments` to it, applies neighbour averaging to them
+  like ligands/receptors, and falls back to ligands/receptors (with a warning) for pathways with no expressed
+  downstream genes.
+- Removed unused code: `cellchat_DB`, `layer_3_DB`, `get_targets`, and the unused kinetic functions
+  (`K1`, `K1_RNAVel`, `K2`, `beta_RNAVel`, `gamma`, `P_pair_LRU_RNAVel`, `P_pair_LRD`, `P_pair_all`).
+  `tl.pathway_strength` and `tl.compute_ccc_matrix_CellchatBenchmark` were removed from the package and kept
+  for reference in `dev/unintegrated/signaling_extras.py`.
 - **Cell-type heterogeneity score corrected** (`tl.consensus_clustering` / `cci_heterogeneity`): the score
   was inverted. It is now `1 - mean normalized deviation`: close to 1 when a cell type contains the
   communication modes in the same proportions as the whole population, close to 0 when its composition

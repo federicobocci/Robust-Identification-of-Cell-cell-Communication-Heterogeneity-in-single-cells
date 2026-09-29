@@ -342,9 +342,24 @@ def single_path_sim(adata,
         rec_exp, lig_exp = neighbor_avg(rec_exp, neigh), neighbor_avg(lig_exp, neigh)
 
     if target:
-        tar = adata.uns['targets'][pathway]
-        tar_exp = np.asarray(adata[:, tar].X).mean(axis=1)
+        # downstream genes of the pathway, selected by import_database() and stored in adata.uns['TF']
+        if pathway not in adata.uns.get('TF', {}):
+            raise ValueError(f"No downstream genes for pathway {pathway!r} in adata.uns['TF']. "
+                             "Run scrich.tl.import_database() first, or use target=False.")
+        tar = list(adata.uns['TF'][pathway])
+        if len(tar) == 0:
+            warnings.warn(f"No downstream genes of pathway {pathway!r} are expressed in the dataset; "
+                          "clustering it on ligands and receptors only.", UserWarning, stacklevel=2)
+            target = False
+    if target:
+        if moments:
+            tar_exp = adata[:, tar].layers['Mu'].mean(axis=1) + adata[:, tar].layers['Ms'].mean(axis=1)
+        else:
+            tar_exp = adata[:, tar].X.toarray().mean(axis=1)
+        tar_exp = np.asarray(tar_exp).ravel()
         adata.obs[pathway+'_tar'] = tar_exp
+        if neighbor_average:
+            tar_exp = neighbor_avg(tar_exp, neigh)
         dat = np.array([rec_exp, lig_exp, tar_exp]).transpose()
     else:
         dat = np.array([rec_exp, lig_exp]).transpose()
@@ -363,20 +378,23 @@ def state_fractions(adata, pathway, annotations, order=None):
     adata: scRNA-seq data object
     pathway: the pathway to select communication modes
     annotations: keys for cell annotations in adata.obs
-    order: order of cell annotations
+    order: deprecated, has no effect (cell types are always stored in sorted order)
 
     Returns
     -------
-    frac: the cell fraction matrix
+    frac: the cell fraction matrix (modes x cell types). Row and column labels are stored in
+        adata.uns['pathways'][pathway]['modes'] and ['cell_types'].
 
     '''
+    if order is not None:
+        warnings.warn("The 'order' argument no longer changes how results are stored: cell types are always "
+                      "stored in sorted order (see adata.uns['pathways'][pathway]['cell_types']). "
+                      "Use the 'order' argument of the plotting functions to change the display order.",
+                      FutureWarning, stacklevel=3)
     labs = np.asarray(list(adata.obs[pathway + '_modes']))
-    lab_set = list(set(labs))
+    lab_set = _mode_order(adata.obs[pathway + '_modes'])
     clusters = np.asarray(list(adata.obs[annotations]))
-    if order == None:
-        clst_set = sorted(list(set(clusters)))
-    else:
-        clst_set = list(np.asarray(order))
+    clst_set = sorted(list(set(clusters)))
 
     ntypes, nclst = len(lab_set), len(clst_set)
     frac = np.zeros((ntypes, nclst))
@@ -385,7 +403,19 @@ def state_fractions(adata, pathway, annotations, order=None):
         type1 = clusters[labs == lab_set[i]]
         for j in range(nclst):
             frac[i][j] = len(type1[type1 == clst_set[j]])
+
+    # record the row (mode) and column (cell type) labels of the fraction matrix
+    adata.uns['pathways'].setdefault(pathway, {})
+    adata.uns['pathways'][pathway]['modes'] = list(lab_set)
+    adata.uns['pathways'][pathway]['cell_types'] = list(clst_set)
     return frac
+
+
+def _mode_order(col):
+    '''Modes of a pathway in a stable order: category order for renamed modes, otherwise sorted.'''
+    if isinstance(col.dtype, pd.CategoricalDtype):
+        return [c for c in col.cat.categories if (col == c).any()]
+    return sorted(set(np.asarray(col)))
 
 def cci_heterogeneity(adata, pathway):
     '''Compute the ccc heterogeneity score for a given pathway, saved in adata.uns['pathways'][pathway]['cci_heterogeneity']
@@ -537,7 +567,7 @@ def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=True, human=
     print(sel_path)
 
     if target:
-        import_database(adata, sel_path, top=top_target, species='human' if human else 'mouse')
+        import_database(adata, sel_path, top=top_target, unspliced=moments, species='human' if human else 'mouse')
 
     for p in sel_path:
         print('Analyzing the ' + p + ' pathway...')
