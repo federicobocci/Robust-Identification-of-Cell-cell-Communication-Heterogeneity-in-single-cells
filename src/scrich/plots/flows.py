@@ -1,14 +1,15 @@
-'''
-functions for alluvial plots
-'''
+"""Alluvial (Sankey) plots of cell types, communication modes and patterns (plotly)."""
+
+from __future__ import annotations
+
 import importlib.util
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 import plotly.graph_objects as go
 
 from ..tools._utils import _mode_order
-from ._colors import discrete_colors
+from ._utils import discrete_colors
 
 
 def compute_weight(list1, list2, v1, v2):
@@ -17,6 +18,7 @@ def compute_weight(list1, list2, v1, v2):
         if l1==v1 and l2==v2:
             w = w + 1
     return w
+
 
 def set_color(map, features):
     # convert colors from matplotlib colormap to RGB
@@ -72,8 +74,6 @@ def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
         fig.write_image(figname, format=format)
     if showfig:
         fig.show()
-
-
 
 
 def alluvial_onepath(adata, pathway, key, map1=plt.cm.Set3, map2=plt.cm.Set2, alpha=0.5,
@@ -135,4 +135,3 @@ def alluvial_pattern(adata, key, map1=plt.cm.Set3, map2=plt.cm.tab20, alpha=0.5,
                     pad=pad, thickness=thickness, linecolor=linecolor, linewidth=linewidth, width=width,
                     height=height, font_size=font_size,
                     savefig=savefig, figname=figname, format=format, showfig=showfig, strip_text=strip_text)
-

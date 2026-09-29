@@ -1,20 +1,66 @@
-'''
-__init__ file for the plots library
-'''
+"""Plotting functions of scRICH, exposed to users as ``scrich.pl``.
 
-from .plot_func import (scatter2D, mode_violin, pathways_overview, pathway_heterogeneity_summary, state_heterogeneity_summary, \
-    heterogeneity_heatmap, plot_mode_gap, heatmap_one_pathway, single_pathway_heterogeneity, pathway_umap, feature_plot,
-                        mode_composition)
+Modules
+-------
+pathways       CCC pathways detected in the data
+modes          communication modes of a pathway (spectral gap, embeddings, violin plots)
+heterogeneity  cell-type heterogeneity of communication modes
+patterns       signaling patterns and similarity between pathways
+ccc            cell-cell communication matrix (chord diagram, coarse-grained map)
+flows          alluvial (Sankey) plots, requires plotly
+velocity       communication modes/patterns with RNA velocity and pseudotime
+"""
 
-from .chord import chord_diagram
+from .ccc import chord_diagram, coarse_grained_map
+from .flows import alluvial_onepath, alluvial_pattern, alluvial_twopath
+from .heterogeneity import (
+    heatmap_one_pathway,
+    heterogeneity_heatmap,
+    mode_composition,
+    pathway_heterogeneity_summary,
+    single_pathway_heterogeneity,
+    state_heterogeneity_summary,
+)
+from .modes import feature_plot, mode_violin, pathway_umap, plot_mode_gap, scatter2D
+from .pathways import pathways_overview
+from .patterns import pathway_hierarchy, pattern, pattern_summary, redundancy
+from .velocity import (
+    expr_map,
+    pattern_plot,
+    pattern_prob_plot,
+    plot_maps,
+    sign_prob_plot,
+    state_dist_pst,
+    top_players_map,
+)
 
-from .alluvial import alluvial_onepath, alluvial_twopath, alluvial_pattern
-
-from .similarity import redundancy, pathway_hierarchy
-
-from .velocity import (plot_maps, sign_prob_plot, state_dist_pst, expr_map, coarse_grained_map,
-                       top_players_map, pattern_plot, pattern_prob_plot)
-
-from .signaling_patterns import pattern, pattern_summary
-
-
+__all__ = [
+    "chord_diagram",
+    "coarse_grained_map",
+    "alluvial_onepath",
+    "alluvial_pattern",
+    "alluvial_twopath",
+    "heatmap_one_pathway",
+    "heterogeneity_heatmap",
+    "mode_composition",
+    "pathway_heterogeneity_summary",
+    "single_pathway_heterogeneity",
+    "state_heterogeneity_summary",
+    "feature_plot",
+    "mode_violin",
+    "pathway_umap",
+    "plot_mode_gap",
+    "scatter2D",
+    "pathways_overview",
+    "pathway_hierarchy",
+    "pattern",
+    "pattern_summary",
+    "redundancy",
+    "expr_map",
+    "pattern_plot",
+    "pattern_prob_plot",
+    "plot_maps",
+    "sign_prob_plot",
+    "state_dist_pst",
+    "top_players_map",
+]

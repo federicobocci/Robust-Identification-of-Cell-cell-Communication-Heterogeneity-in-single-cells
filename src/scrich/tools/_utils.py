@@ -133,3 +133,31 @@ def _quiet_pandas():
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', category=pd.errors.PerformanceWarning)
         yield
+
+
+def compute_sign_prob(adata, pathway, key='distances'):
+    neighbors = extract_neighbors(adata, key=key)
+    modes = np.asarray(adata.obs[pathway + '_modes'])
+
+    unique_modes = _mode_order(adata.obs[pathway + '_modes'])
+    sign_prob = np.zeros((modes.size, len(unique_modes)))
+    for i in range(modes.size):
+        neigh_modes = modes[neighbors[i]]
+        counts = np.asarray([neigh_modes[neigh_modes == m].size for m in unique_modes])
+        counts = counts / np.sum(counts)
+        sign_prob[i] = counts
+    return unique_modes, sign_prob
+
+
+def compute_pattern_prob(adata, key='distances'):
+    neighbors = extract_neighbors(adata, key=key)
+    modes = np.asarray(adata.obs['sign_pattern'])
+
+    unique_modes = _mode_order(adata.obs['sign_pattern'])  # numeric pattern order (not '0', '1', '10', '2', ...)
+    sign_prob = np.zeros((modes.size, len(unique_modes)))
+    for i in range(modes.size):
+        neigh_modes = modes[neighbors[i]]
+        counts = np.asarray([neigh_modes[neigh_modes == m].size for m in unique_modes])
+        counts = counts / np.sum(counts)
+        sign_prob[i] = counts
+    return unique_modes, sign_prob

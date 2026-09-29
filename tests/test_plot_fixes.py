@@ -63,7 +63,7 @@ def test_mode_order_follows_renamed_modes(analysed):
 
 
 def test_pattern_probabilities_numeric_order(analysed):
-    from scrich.plots.velocity import compute_pattern_prob
+    from scrich.tools._utils import compute_pattern_prob
 
     rng = np.random.default_rng(0)
     labels = rng.integers(0, 12, analysed.n_obs).astype(str)

@@ -29,7 +29,7 @@ def test_order_does_not_change_stored_results(adata_mouse):
 
 
 def test_plot_order_reorders_columns(adata_mouse):
-    from scrich.plots.plot_func import _fraction_matrix
+    from scrich.plots._utils import _fraction_matrix
 
     p = _modes(adata_mouse)[0]
     frac, modes, types = _fraction_matrix(adata_mouse, p, "celltype", order=["T2", "T0", "T1"])

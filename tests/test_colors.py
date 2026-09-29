@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 import scrich as ri
-from scrich.plots._colors import discrete_colors
+from scrich.plots._utils import discrete_colors
 
 
 @pytest.mark.parametrize("cmap", [plt.cm.Set2, plt.cm.tab20, "Set3", "viridis", ["red", "blue"]])

@@ -1,4 +1,4 @@
-"""Colour helpers shared by the plotting functions."""
+"""Internal helpers shared by the plotting functions (colours, fraction matrices)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,6 @@ import matplotlib as mpl
 import numpy as np
 from matplotlib.colors import Colormap, ListedColormap, to_rgb
 
-# Qualitative palettes appended, in order, when a palette has fewer colours than needed.
 _EXTENSION_PALETTES = ("tab20", "tab20b", "tab20c")
 
 
@@ -55,3 +54,22 @@ def discrete_colors(cmap: str | Colormap | Sequence, n: int) -> list[tuple[float
     if len(colors) < n:
         colors += [to_rgb(c) for c in mpl.colormaps["turbo"](np.linspace(0.05, 0.95, n - len(colors)))]
     return colors[:n]
+
+
+def _fraction_matrix(adata, pathway, key, order=None):
+    """Fraction matrix of a pathway (modes x cell types) with its labels, columns in the requested order.
+
+    Cell types are stored in sorted order (adata.uns['pathways'][pathway]['cell_types']); ``order``
+    only changes how they are displayed.
+    """
+    frac = np.asarray(adata.uns['fraction_mat'][pathway])
+    info = adata.uns['pathways'].get(pathway, {})
+    cell_types = list(info.get('cell_types', sorted(set(adata.obs[key]))))
+    modes = list(info.get('modes', range(frac.shape[0])))
+    if order is None:
+        return frac, modes, cell_types
+    order = list(order)
+    missing = [c for c in order if c not in cell_types]
+    if missing:
+        raise ValueError(f"order contains unknown cell types: {missing}")
+    return frac[:, [cell_types.index(c) for c in order]], modes, order
