@@ -32,7 +32,7 @@ old code/Python 3.9/paper environment vs new code/Python 3.12/current libraries.
    (probably meant `plt.xlim([0, xlim_right])`).
 4. `pl.pathway_hierarchy(savefig='True')`: default is the *string* `'True'`, so it saves a file
    by default.
-5. `tl.permutation_testing` uses the global NumPy random state with no `seed` argument, so
+5. [SEED ADDED; test method still to review] `tl.permutation_testing` uses the global NumPy random state with no `seed` argument, so
    p-values are not reproducible.
 6. `spectral_analysis_opt`: `eigsh(..., which='SM')` without a fixed `v0` uses a random start
    vector; results can vary slightly between runs.
@@ -41,18 +41,18 @@ old code/Python 3.9/paper environment vs new code/Python 3.12/current libraries.
 
 ## Scalability
 
-- `sim_matrix` builds a dense `n_cells × n_cells` matrix (plus one per KMeans run): ~20 GB at
+- [FIXED in all_path_sim via low-rank factor] `sim_matrix` builds a dense `n_cells × n_cells` matrix (plus one per KMeans run): ~20 GB at
   50,000 cells. Consider a co-association matrix restricted to kNN pairs, or subsampling.
 - `compute_sim` is an O(n²) Python/numba loop; `labels[:, None] == labels[None, :]` is equivalent.
 
 ## Code quality
 
-- `print` statements everywhere (e.g. the leftover `print(adata.uns.keys(), '4')` in
+- [FIXED in tools] `print` statements everywhere (e.g. the leftover `print(adata.uns.keys(), '4')` in
   `all_path_sim`) → use `logging` with a verbosity setting.
-- `assert` used for input validation → raise `ValueError` / `KeyError` with clear messages.
-- `human=True/False` in some functions and `species='human'/'mouse'` in others → use `species`
+- [FIXED in tools] `assert` used for input validation → raise `ValueError` / `KeyError` with clear messages.
+- [FIXED in tools; plots pending] `human=True/False` in some functions and `species='human'/'mouse'` in others → use `species`
   everywhere (keep `human` as a deprecated alias for one release).
 - [FIXED] Duplicated helpers `extract_neighbors` / `neighbor_avg` (now only in `tools/_utils.py`).
-- Global `warnings.simplefilter('ignore', FutureWarning)` in `mode_clustering_func.py` hides
+- [FIXED] Global `warnings.simplefilter('ignore', FutureWarning)` in `mode_clustering_func.py` hides
   warnings for the user's whole session.
 - `ruff check src` reports ~120 issues in legacy modules (mostly unused imports/variables).

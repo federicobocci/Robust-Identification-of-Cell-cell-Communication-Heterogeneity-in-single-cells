@@ -73,11 +73,13 @@ they were produced from the original exFinder data.
 ```python
 import scrich as ri
 
-ri.tl.pathways_overview(adata, human=False)
-ri.tl.all_path_sim(adata, "celltype", pathways_to_use=10, target=False, human=False, neighbor_average=True)
+ri.tl.pathways_overview(adata, species="mouse")
+ri.tl.all_path_sim(adata, "celltype", pathways_to_use=10, species="mouse", neighbor_average=True)
 ri.tl.permutation_testing(adata, key="celltype")
 ri.pl.pathway_heterogeneity_summary(adata, key="celltype")
 ```
+
+Progress messages can be reduced with `ri.set_verbosity("warning")`.
 
 ## Tutorials
 

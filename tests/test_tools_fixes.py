@@ -9,8 +9,8 @@ from scrich.tools.targets import get_counts
 
 
 def _modes(adata, **kw):
-    ri.tl.pathways_overview(adata, human=False)
-    ri.tl.all_path_sim(adata, "celltype", pathways_to_use=2, target=False, human=False, neighbor_average=True, **kw)
+    ri.tl.pathways_overview(adata, species="mouse")
+    ri.tl.all_path_sim(adata, "celltype", pathways_to_use=2, target=False, species="mouse", neighbor_average=True, **kw)
     return adata.uns["selected_pathways"]
 
 
@@ -53,7 +53,7 @@ def test_get_counts_per_gene(adata_mouse, sparse):
 
 
 def test_target_uses_tf_genes(adata_mouse):
-    ri.tl.pathways_overview(adata_mouse, human=False)
+    ri.tl.pathways_overview(adata_mouse, species="mouse")
     p = "IGF" if "IGF" in adata_mouse.uns["pathways"] else list(adata_mouse.uns["pathways"])[0]
     with pytest.raises(ValueError, match="import_database"):
         ri.tl.single_path_sim(adata_mouse, p, target=True, print_info=False)
@@ -80,8 +80,8 @@ def test_all_path_sim_with_targets(adata_mouse, exfinder_dir):
     a.obsp = adata_mouse.obsp.copy()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
-        ri.tl.pathways_overview(a, human=False)
-        ri.tl.all_path_sim(a, "celltype", pathways_to_use=3, target=True, human=False, top_target=5)
+        ri.tl.pathways_overview(a, species="mouse")
+        ri.tl.all_path_sim(a, "celltype", pathways_to_use=3, target=True, species="mouse", top_target=5)
     paths = a.uns["selected_pathways"]
     assert any(len(a.uns["TF"][p]) > 0 for p in paths)
     for p in paths:
@@ -93,7 +93,7 @@ def test_all_path_sim_with_targets(adata_mouse, exfinder_dir):
 def test_consensus_clustering_uses_targets(adata_mouse):
     from scrich.tools.modes import consensus_clustering
 
-    ri.tl.pathways_overview(adata_mouse, human=False)
+    ri.tl.pathways_overview(adata_mouse, species="mouse")
     p = list(adata_mouse.uns["pathways"])[0]
     ri.tl.single_path_sim(adata_mouse, p, print_info=False)
     # a target signal with a clear two-group split that dominates ligand/receptor expression
@@ -121,7 +121,7 @@ def test_consensus_clustering_neighbor_average(adata_mouse):
     from scrich.tools._utils import extract_neighbors, neighbor_avg
     from scrich.tools.modes import consensus_clustering
 
-    ri.tl.pathways_overview(adata_mouse, human=False)
+    ri.tl.pathways_overview(adata_mouse, species="mouse")
     p = list(adata_mouse.uns["pathways"])[0]
     ri.tl.single_path_sim(adata_mouse, p, print_info=False)
     rec_before = np.asarray(adata_mouse.obs[p + "_rec"]).copy()

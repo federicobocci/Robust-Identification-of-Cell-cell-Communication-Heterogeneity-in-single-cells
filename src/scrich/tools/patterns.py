@@ -8,7 +8,8 @@ import scanpy as sc
 from scipy.sparse.csgraph import connected_components
 from sklearn.metrics import mutual_info_score
 
-from ._utils import _mode_codes
+from .._logging import logger
+from ._utils import _mode_codes, _quiet_pandas
 
 
 def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0, seed=42, print_info=True):
@@ -56,9 +57,14 @@ def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0
     sc.pp.neighbors(path_adata, n_neighbors=n_neighbors, n_pcs=min(len(paths), path_adata.obsm['X_pca'].shape[1]),
                     random_state=random_state)
     sc.tl.umap(path_adata, random_state=random_state)
-    sc.tl.leiden(path_adata, resolution=res, random_state=random_state)
+    # flavor='leidenalg' is scanpy's current default (same results as before); passing it explicitly avoids
+    # scanpy's FutureWarning about a future change of default, and its hint about the igraph flavor is silenced
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', message='.*igraph.*', category=UserWarning)
+        sc.tl.leiden(path_adata, resolution=res, random_state=random_state, flavor='leidenalg')
 
-    adata.obs['sign_pattern'] = path_adata.obs['leiden']
+    with _quiet_pandas():
+        adata.obs['sign_pattern'] = path_adata.obs['leiden']
 
     # disconnected pieces of the graph set a minimum number of patterns
     n_pieces = connected_components(path_adata.obsp['connectivities'], directed=False)[0]
@@ -68,11 +74,11 @@ def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0
     if print_info:
         counts = adata.obs['sign_pattern'].value_counts()
         counts = counts.reindex(sorted(counts.index, key=int))
-        print(f"Identified {counts.size} signaling patterns at resolution res={res} "
-              f"(clustering {len(paths)} pathways, n_neighbors={n_neighbors}).")
-        print('Cells per pattern: ' + ', '.join(f'{k}: {v}' for k, v in counts.items()))
+        logger.info(f"Identified {counts.size} signaling patterns at resolution res={res} "
+                    f"(clustering {len(paths)} pathways, n_neighbors={n_neighbors}).")
+        logger.info('Cells per pattern: ' + ', '.join(f'{k}: {v}' for k, v in counts.items()))
         if counts.size > 20 and n_pieces <= 1:
-            print('Many patterns were found; a lower resolution (res) gives fewer, larger patterns.')
+            logger.info('Many patterns were found; a lower resolution (res) gives fewer, larger patterns.')
 
     if n_pieces > 1:
         warnings.warn(
@@ -83,7 +89,8 @@ def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0
             stacklevel=2,
         )
 
-    sc.tl.rank_genes_groups(adata, 'sign_pattern')
+    with _quiet_pandas():
+        sc.tl.rank_genes_groups(adata, 'sign_pattern')
 
 
 def twopath_mutual_info(adata, path1, path2):

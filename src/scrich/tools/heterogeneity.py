@@ -87,7 +87,7 @@ def cci_heterogeneity(adata, pathway):
     adata.uns['pathways'][pathway]['cci_heterogeneity'] = v
 
 
-def permutation_testing(adata, key='seurat_clusters', n_sample = 10000, perm_threshold=0.05):
+def permutation_testing(adata, key='seurat_clusters', n_sample = 10000, perm_threshold=0.05, seed=0):
     '''Compute permutation testing to identify statistically significant heterogeneous cell types.
     Results are saved in adata.uns['permutation_test']
 
@@ -97,12 +97,15 @@ def permutation_testing(adata, key='seurat_clusters', n_sample = 10000, perm_thr
     key: adata.obs key for cell annotations
     n_sample: number of permutation tests
     perm_threshold: p-value threshold for statistical significance
+    seed: seed of the random number generator, for reproducible p-values (default=0).
+        None uses NumPy's global random state (behaviour of versions up to 0.1.0).
 
     Returns
     -------
     None
 
     '''
+    rng = np.random if seed is None else np.random.RandomState(seed)
     perm_dict = {}
     pathways = adata.uns['selected_pathways']
     types = sorted(list(set(adata.obs[key])))
@@ -118,7 +121,7 @@ def permutation_testing(adata, key='seurat_clusters', n_sample = 10000, perm_thr
         for i in range(len(types)):
             ncell = ncells_per_type[i]
             major_mode = np.amax(frac[:, i])
-            test = np.random.poisson(major_mode, n_sample)
+            test = rng.poisson(major_mode, n_sample)
             ratio.append(float(len(test[test > ncell])) / len(test))
 
             mu.append(major_mode / ncell)

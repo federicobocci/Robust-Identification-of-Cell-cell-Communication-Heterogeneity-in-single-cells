@@ -1,5 +1,8 @@
 """Internal helpers shared by the analysis tools and plots."""
 
+import contextlib
+import warnings
+
 import numpy as np
 import pandas as pd
 
@@ -19,7 +22,8 @@ def list_intersect(geneset,
     gene_list: list of common genes between the two lists
 
     '''
-    assert isinstance(geneset, list) and isinstance(lst, list), 'Please convert the gene lists to Python list format'
+    if not (isinstance(geneset, list) and isinstance(lst, list)):
+        raise TypeError('geneset and lst must be Python lists')
 
     gene_list = []
     for l in lst:
@@ -57,7 +61,8 @@ def extract_neighbors(adata, key='distances'):
     neighbors: the list of neighbors per cell
 
     '''
-    assert key=='distances' or key=='connectivities', "Please choose between key=='distances' or key=='connectivities'"
+    if key not in ('distances', 'connectivities'):
+        raise ValueError(f"key must be 'distances' or 'connectivities', got {key!r}")
     dist = adata.obsp[key]
     neighbors = [ dist[i].indices for i in range(adata.shape[0]) ]
     return neighbors
@@ -103,3 +108,28 @@ def _mode_codes(col):
     if pd.api.types.is_numeric_dtype(col):
         return np.asarray(col, dtype=float)
     return pd.Categorical(col, categories=sorted(pd.unique(col))).codes.astype(float)
+
+
+def _resolve_species(species=None, human=None):
+    """Species name from the new ``species`` argument or the deprecated ``human`` flag.
+
+    ``species`` given as True/False (e.g. an old positional ``human`` argument) is treated as ``human``.
+    """
+    from ..db import check_species
+
+    if isinstance(species, (bool, np.bool_)):
+        human, species = bool(species), None
+    if human is not None:
+        warnings.warn("The 'human' argument is deprecated; use species='human' or species='mouse' instead.",
+                      FutureWarning, stacklevel=3)
+        if species is None:
+            species = 'human' if human else 'mouse'
+    return check_species(species if species is not None else 'human')
+
+
+@contextlib.contextmanager
+def _quiet_pandas():
+    """Silence pandas' DataFrame-fragmentation PerformanceWarning (caused by adding many adata.obs columns)."""
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=pd.errors.PerformanceWarning)
+        yield

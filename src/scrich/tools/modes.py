@@ -3,40 +3,41 @@
 import warnings
 
 import numpy as np
-import pandas as pd
-from numba import jit
-from scipy.sparse.linalg import eigsh
 from sklearn.cluster import KMeans
 
-from ._utils import extract_neighbors, neighbor_avg
+from .._logging import logger
+from ._utils import _quiet_pandas, _resolve_species, extract_neighbors, neighbor_avg
 from .heterogeneity import cci_heterogeneity, state_fractions
 from .pathways import select_pathways
 from .targets import import_database
 
-warnings.simplefilter(action='ignore', category=FutureWarning)
-warnings.simplefilter(action='ignore', category=pd.errors.PerformanceWarning)
 
+def _coassociation_factor(mat, nsim=5, kmin=3, kmax=6, print_info=True):
+    '''Factor F of the average co-clustering (similarity) matrix, S = F @ F.T.
 
-@jit(nopython=True)
-def compute_sim(clst_labels):
-    '''computes a similarity matrix for clustering given by clst_labels
-
-    Parameters
-    ----------
-    clst_labels: list of cluster labels
-
-    Returns
-    -------
-    sim: a similarity matrix with ones if cells belong to same cluster and zeros otherwise
-
+    Each of the nsim * (kmax - kmin + 1) k-means runs contributes a one-hot cluster-membership block;
+    S[i, j] is the fraction of runs in which cells i and j fall in the same cluster. Storing F
+    (cells x total number of clusters) instead of S (cells x cells) keeps memory linear in the number of cells.
     '''
-    ncell = clst_labels.size
-    sim = np.zeros((ncell, ncell))
-    for i in range(ncell):
-        for j in range(ncell):
-            if clst_labels[i]==clst_labels[j]:
-                sim[i][j]=1.
-    return sim
+    if not isinstance(mat, np.ndarray):
+        raise TypeError('The expression matrix must be a numpy.ndarray.')
+    if not (isinstance(kmin, (int, np.integer)) and isinstance(kmax, (int, np.integer))) or kmin >= kmax:
+        raise ValueError(f'kmin and kmax must be integers with kmin < kmax (got kmin={kmin}, kmax={kmax}).')
+
+    if print_info:
+        logger.info('Running clustering with nsim=%d, kmin=%d, kmax=%d', nsim, kmin, kmax)
+
+    n_clst = list(range(kmin, kmax + 1))
+    ncell = mat.shape[0]
+    blocks = []
+    for k in n_clst:
+        for m in range(nsim):
+            logger.debug('clustering #%d with k=%d', m + 1, k)
+            labels = KMeans(n_clusters=k, n_init=10, random_state=m).fit(mat).labels_
+            onehot = np.zeros((ncell, k))
+            onehot[np.arange(ncell), labels] = 1.0
+            blocks.append(onehot)
+    return np.hstack(blocks) / np.sqrt(nsim * len(n_clst))
 
 
 def sim_matrix(mat,
@@ -46,6 +47,9 @@ def sim_matrix(mat,
                print_info=True
                ):
     '''compute an average similarity matrix based on k-means clustering on expression of ligands and receptors
+
+    Note: the matrix has size cells x cells. all_path_sim() works with its low-rank factor instead
+    (see _coassociation_factor), which needs far less memory.
 
     Parameters
     ----------
@@ -59,76 +63,66 @@ def sim_matrix(mat,
     sim: similarity matrix
 
     '''
-    assert isinstance(mat, np.ndarray), 'expression matrix is not in numpy.ndarray format'
-    assert (isinstance(kmin, int) and isinstance(kmax, int)) and kmin<kmax, 'kmin and kmax typing or values are not compatible'
-
-    if print_info:
-        print('Running clustering with nsim=%d, kmin=%d, kmax=%d' % (nsim, kmin, kmax))
-
-    n_clst = [i for i in range(kmin, kmax+1)]
-    ncell = mat.shape[0]
-
-    sim = np.zeros((ncell, ncell))
-    for k in n_clst:
-        for m in range(nsim):
-            if print_info:
-                print('clustering #' + str(m + 1) + ' with k=' + str(k))
-            kmeans = KMeans(n_clusters=k, n_init=10, random_state=m).fit(mat)
-            labels = kmeans.labels_
-            sim_mat = compute_sim(labels)
-            sim = sim + sim_mat/(float(nsim * len(n_clst)))
-
-    return sim
+    F = _coassociation_factor(mat, nsim=nsim, kmin=kmin, kmax=kmax, print_info=print_info)
+    return F @ F.T
 
 
 def spectral_analysis_opt(adata,
                       A,
                       pathway,
-                      print_info=True
+                      print_info=True,
+                      is_factor=False
                       ):
-    '''Decompose the similarity matrix via symmetric non-negative matrix factorization
+    '''Find the optimal number of communication modes from the spectrum of the similarity matrix
     Results for pathway are stored in adata.uns['SymNMF'][pathway]
+
+    The 10 smallest eigenvalues of the normalized Laplacian I - D^-1/2 A D^-1/2 are computed and the
+    optimal number of modes is given by the largest gap between consecutive eigenvalues.
 
     Parameters
     ----------
     adata: anndata object of gene counts
+    A: similarity matrix (cells x cells), or its factor F with A = F @ F.T if is_factor=True
+    pathway: pathway of interest
+    print_info: if True, report the optimal number of modes
+    is_factor: if True, A is the low-rank factor returned by _coassociation_factor (memory-efficient, same result)
 
     Returns
     -------
     None
 
     '''
-    # symmetric non-negative matrix factorization
-    n = A.shape[0]
-
-    # Row sums
-    d = A.sum(axis=1)
-
-    # Inverse sqrt safely
-    d_inv_sqrt = np.zeros_like(d)
-    mask = d > 0
-    d_inv_sqrt[mask] = 1.0 / np.sqrt(d[mask])
-
-    # Normalize without forming diagonal matrices
-    # Equivalent to C @ A @ C
-    P = (d_inv_sqrt[:, None] * A) * d_inv_sqrt[None, :]
-
-    # Construct matrix
-    Pwr = np.eye(n) - P
-
-    # Faster eigen decomposition for symmetric matrices
-    w, v = eigsh(Pwr, k=10, which='SM')
-    w = np.real(w)
+    n_eig = 10
+    if is_factor:
+        F = np.asarray(A)
+        d = F @ F.sum(axis=0)                       # row sums of F @ F.T
+        d_inv_sqrt = np.zeros_like(d)
+        mask = d > 0
+        d_inv_sqrt[mask] = 1.0 / np.sqrt(d[mask])
+        B = d_inv_sqrt[:, None] * F                 # D^-1/2 A D^-1/2 = B @ B.T
+        # the non-zero eigenvalues of B @ B.T equal those of the small matrix B.T @ B
+        lam = np.linalg.eigvalsh(B.T @ B)[::-1]
+        lam = np.concatenate([lam, np.zeros(max(0, n_eig - lam.size))])[:n_eig]
+        w = np.sort(1.0 - lam)
+    else:
+        from scipy.sparse.linalg import eigsh
+        n = A.shape[0]
+        d = A.sum(axis=1)
+        d_inv_sqrt = np.zeros_like(d)
+        mask = d > 0
+        d_inv_sqrt[mask] = 1.0 / np.sqrt(d[mask])
+        P = (d_inv_sqrt[:, None] * A) * d_inv_sqrt[None, :]
+        w, _ = eigsh(np.eye(n) - P, k=n_eig, which='SM')
+        w = np.real(w)
 
     srt = np.sort(w)
     diff = srt[1:] - srt[0:-1]
     opt = np.argmax(diff)+1
     if print_info:
-        print('The optimal number of clusters is %d' % opt)
+        logger.info('The optimal number of clusters is %d', opt)
 
     if 'SymNMF' not in adata.uns.keys():
         adata.uns['SymNMF'] = {}
-    # adata.uns['SymNMF'][pathway] = {'eigenvalues': w, 'eigenvectors': v, 'gap':diff, 'optimal':opt}
     adata.uns['SymNMF'][pathway] = {'eigenvalues': w, 'gap': diff, 'optimal': opt}
 
 
@@ -138,10 +132,11 @@ def single_path_sim(adata,
                     kmin=3,
                     kmax=6,
                     target=False,
-                    human=True,
+                    human=None,
                     neighbor_average=False,
                     moments=False,
-                    print_info=True
+                    print_info=True,
+                    return_factor=False
                     ):
     '''Compute a cell-cell similarity matrix for a given pathway
     Identified receptors and ligands for pathway are stored in adata.uns['pathways']
@@ -154,15 +149,18 @@ def single_path_sim(adata,
     pathway: pathway of interest
     target: if True, also use the expression of the pathway's downstream genes (adata.uns['TF'][pathway],
         from import_database) (default=False)
-    human: if True, use the human database, otherwise use mouse (default=True)
+    human: deprecated and unused (the pathway genes are taken from adata.uns['pathways'])
     print_info: print information while executing (default=True)
+    return_factor: if True, return the factor F of the similarity matrix (S = F @ F.T, cells x number of
+        clusters) instead of S itself (cells x cells), which needs much less memory (default=False)
 
     Returns
     -------
-    None
+    sim_mat: the similarity matrix (or its factor if return_factor=True)
 
     '''
-    # find_genes(adata, pathway, human=human, print_info=print_info)
+    if human is not None:
+        _resolve_species(human=human)  # deprecation warning only
 
     rec, lig = adata.uns['pathways'][pathway]['receptors'], adata.uns['pathways'][pathway]['ligands']
     if moments:
@@ -171,8 +169,9 @@ def single_path_sim(adata,
     else:
         rec_exp = adata[:, rec].X.toarray().mean(axis=1)
         lig_exp = adata[:, lig].X.toarray().mean(axis=1)
-    adata.obs[pathway+'_rec'] = np.asarray(rec_exp)
-    adata.obs[pathway+'_lig'] = np.asarray(lig_exp)
+    with _quiet_pandas():
+        adata.obs[pathway+'_rec'] = np.asarray(rec_exp)
+        adata.obs[pathway+'_lig'] = np.asarray(lig_exp)
 
     if neighbor_average:
         neigh = extract_neighbors(adata)
@@ -195,17 +194,17 @@ def single_path_sim(adata,
         else:
             tar_exp = adata[:, tar].X.toarray().mean(axis=1)
         tar_exp = np.asarray(tar_exp).ravel()
-        adata.obs[pathway+'_tar'] = tar_exp
+        with _quiet_pandas():
+            adata.obs[pathway+'_tar'] = tar_exp
         if neighbor_average:
             tar_exp = neighbor_avg(tar_exp, neigh)
         dat = np.array([rec_exp, lig_exp, tar_exp]).transpose()
     else:
         dat = np.array([rec_exp, lig_exp]).transpose()
 
-    sim_mat = sim_matrix(dat, nsim=nsim, kmin=kmin, kmax=kmax, print_info=print_info)
-    print('finished sim_mat for ' + pathway + ', starting spectral analysis')
-
-    return sim_mat
+    F = _coassociation_factor(dat, nsim=nsim, kmin=kmin, kmax=kmax, print_info=print_info)
+    logger.debug('finished similarity matrix for %s', pathway)
+    return F if return_factor else F @ F.T
 
 
 def consensus_clustering(adata,
@@ -261,7 +260,8 @@ def consensus_clustering(adata,
     kmeans = KMeans(n_clusters=n, n_init=10, random_state=seed).fit(dat)
     labels = kmeans.labels_
 
-    adata.obs[pathway + '_modes'] = labels
+    with _quiet_pandas():
+        adata.obs[pathway + '_modes'] = labels
 
     if 'fraction_mat' not in adata.uns.keys():
         adata.uns['fraction_mat'] = {}
@@ -269,9 +269,9 @@ def consensus_clustering(adata,
     cci_heterogeneity(adata, pathway)
 
 
-def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, human=True, moments=False,
+def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, species=None, moments=False,
                  neighbor_average=False, method='expression', pathways_to_use=10, top_target=10, order=None, seed=100, print_info=False,
-                 consensus_neighbor_average=False):
+                 consensus_neighbor_average=False, human=None):
     '''Loop the clustering based on cell-cell communication to all pathways identified in the dataset
 
     Parameters
@@ -281,7 +281,8 @@ def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, human
     target: if True, also use the expression of each pathway's downstream genes (selected with import_database)
         both for the similarity matrix and for the final consensus clustering of modes (default=False)
     top_target: number of downstream genes per pathway used when target=True (default=10)
-    human: if True use the human database, otherwise mouse
+    species: 'human' (default) or 'mouse'
+    human: deprecated, use species
     neighbor_average: if True, average expression over each cell's neighbours for the similarity matrix
     consensus_neighbor_average: if True, also use neighbour-averaged expression for the final consensus clustering
         of modes (default=False, i.e. modes are assigned from unsmoothed expression as in v0.1.0)
@@ -293,28 +294,25 @@ def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, human
     None
 
     '''
+    species = _resolve_species(species, human)
     if isinstance(pathways_to_use, int):
-        select_pathways(adata, human=human, method=method, n=pathways_to_use)
+        select_pathways(adata, species=species, method=method, n=pathways_to_use)
         sel_path = adata.uns['selected_pathways']
     else:
         adata.uns['selected_pathways'] = pathways_to_use
         sel_path = adata.uns['selected_pathways']
-    print(sel_path)
+    logger.info('Selected pathways: %s', ', '.join(map(str, sel_path)))
 
     if target:
-        import_database(adata, sel_path, top=top_target, unspliced=moments, species='human' if human else 'mouse')
+        import_database(adata, sel_path, top=top_target, unspliced=moments, species=species)
 
     for p in sel_path:
-        print('Analyzing the ' + p + ' pathway...')
-        print('running clustering')
-        sim_mat = single_path_sim(adata, p, nsim=nsim, kmin=kmin, kmax=kmax, target=target, human=human, moments=moments, neighbor_average=neighbor_average, print_info=print_info)
-        print('')
-
-        spectral_analysis_opt(adata, sim_mat, p, print_info=print_info)
-
-        print('running consensus')
+        logger.info('Analyzing the %s pathway...', p)
+        F = single_path_sim(adata, p, nsim=nsim, kmin=kmin, kmax=kmax, target=target, moments=moments,
+                            neighbor_average=neighbor_average, print_info=print_info, return_factor=True)
+        spectral_analysis_opt(adata, F, p, print_info=print_info, is_factor=True)
+        del F
         # use targets only for pathways where single_path_sim could use them (some have no expressed downstream genes)
         uses_targets = target and adata.uns['pathways'][p].get('uses_targets', False)
         consensus_clustering(adata, p, annotations, n_cluster='optimal', order=order, seed=seed, target=uses_targets,
                              neighbor_average=consensus_neighbor_average)
-    print(adata.uns.keys(), '4')

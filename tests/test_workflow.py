@@ -8,8 +8,8 @@ import scrich as ri
 
 
 def _run(adata):
-    ri.tl.pathways_overview(adata, human=False)
-    ri.tl.all_path_sim(adata, "celltype", pathways_to_use=2, target=False, human=False, neighbor_average=True)
+    ri.tl.pathways_overview(adata, species="mouse")
+    ri.tl.all_path_sim(adata, "celltype", pathways_to_use=2, target=False, species="mouse", neighbor_average=True)
     np.random.seed(0)
     ri.tl.permutation_testing(adata, key="celltype")
     return adata.uns["selected_pathways"]

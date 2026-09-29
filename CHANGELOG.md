@@ -36,6 +36,28 @@
 - `extract_neighbors` / `neighbor_avg` are defined once in `tools/_utils.py` (the copy in `plots/velocity.py`
   was removed).
 
+### Robustness and consistency of `scrich.tl` (Phase 3)
+- **Memory**: the cell-cell similarity matrix is no longer built as a dense cells x cells matrix in
+  `tl.all_path_sim`. It is kept as its low-rank factor (cells x number of clusters, e.g. 90 columns with the
+  defaults) and the spectral gap is computed exactly from the factor. For 50,000 cells this is ~36 MB instead
+  of ~20 GB per matrix; eigenvalues agree with the dense computation to ~1e-15 and results are unchanged.
+  `tl.single_path_sim` still returns the dense matrix unless `return_factor=True`.
+- `tl.permutation_testing` has a `seed` argument (default 0) for reproducible p-values (the test itself is
+  unchanged; `seed=None` uses NumPy's global random state as before).
+- `species='human'|'mouse'` replaces `human=True/False` in `tl.pathways_overview`, `tl.find_genes`,
+  `tl.select_pathways` and `tl.all_path_sim` (`human` still works, with a FutureWarning).
+- Progress messages use Python logging instead of `print`; control them with `scrich.set_verbosity('warning'|
+  'info'|'debug')`. Per-run clustering messages are now at debug level; the leftover debug print in
+  `all_path_sim` was removed.
+- Input checks raise `ValueError`/`KeyError`/`TypeError` with explicit messages instead of `assert`
+  (e.g. invalid `model`, missing velocity layer, unknown pathways, `pathways_overview` not run).
+- Global warning filters set on import (which hid all `FutureWarning`s in the user's session) were removed;
+  only pandas' DataFrame-fragmentation warning is silenced locally where scRICH adds `adata.obs` columns.
+- `tl.find_sign_patterns` passes `flavor='leidenalg'` to Leiden explicitly (scanpy's current default, same
+  results) to avoid scanpy's warning about a future default change.
+- `tl.pathways_overview` scans pathways in sorted order (deterministic across Python sessions).
+- `tl.import_database`: `input_target` default changed from a mutable `{}` to `None`.
+
 ### Fixes
 - `pl.pattern(..., human=True)` read the *receptor* table as ligands; now reads the ligand table.
 - `tl.all_path_sim(..., target=True, human=False)` loaded the human TF database; it now uses mouse.

@@ -97,9 +97,14 @@ def compute_ccc_matrix(adata, pathway, key='clusters', include_target=False, use
     None
 
     '''
-    assert model=='mass_action' or model=='diffusion', "Invalid model parameter, choose between model=='mass action' or model=='diffusion'"
-    if use_velocity==True:
-        assert 'velocity' in adata.layers.keys(), "'velocity' key not found in adata.layers"
+    if model not in ('mass_action', 'diffusion'):
+        raise ValueError(f"model must be 'mass_action' or 'diffusion', got {model!r}")
+    if use_velocity and 'velocity' not in adata.layers:
+        raise KeyError("use_velocity=True requires adata.layers['velocity'] (e.g. from scvelo.tl.velocity).")
+    if pathway + '_modes' not in adata.obs:
+        raise KeyError(f"adata.obs[{pathway + '_modes'!r}] not found. Run all_path_sim() for this pathway first.")
+    if include_target and pathway not in adata.uns.get('TF', {}):
+        raise KeyError(f"No downstream genes for {pathway!r} in adata.uns['TF']. Run import_database() first.")
     # generate list of cell labels (state + mode)
     # some state-mode combination might not exist, but still need to be defined to have a well-defined matrix
     states = list(adata.obs[key])

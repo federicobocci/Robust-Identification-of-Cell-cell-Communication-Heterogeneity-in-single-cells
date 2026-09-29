@@ -94,7 +94,7 @@ def select_top_tf(count_df, tf_list, n=10):
     return keep
 
 
-def import_database(adata, pathways, top=10, unspliced=False, species='human', input_target={}):
+def import_database(adata, pathways, top=10, unspliced=False, species='human', input_target=None):
     '''Find target genes of CCC pathways, either using the built-in database or passed by user via input_target.
     results are stored in adata.uns['TF'].
 
@@ -112,7 +112,10 @@ def import_database(adata, pathways, top=10, unspliced=False, species='human', i
     None
 
     '''
-    # load the database for ligand, receptor, and TF-receptor:
+    input_target = {} if input_target is None else input_target
+    missing = [p for p in pathways if p not in adata.uns.get('pathways', {})]
+    if missing:
+        raise KeyError(f"Pathways {missing} not found in adata.uns['pathways']. Run pathways_overview() or find_genes() first.")
     rec_dct = {}
     for p in pathways:
         rec_dct[p] = adata.uns['pathways'][p]['receptors']
@@ -122,7 +125,7 @@ def import_database(adata, pathways, top=10, unspliced=False, species='human', i
     # compute average gene count to select
     count_df = get_counts(adata, unspliced=unspliced)
 
-    tf_dict, tar_dict = {}, {}
+    tf_dict = {}
     for p in pathways:
         if p in input_target.keys():
             tf_list = input_target[p]
