@@ -8,21 +8,25 @@ from ._utils import _mode_order
 
 
 def state_fractions(adata, pathway, annotations, order=None):
-    '''Compute a matrix of cell fractions between cell annotations and communication modes of a pathway
+    r"""Number of cells in each communication mode (rows) and cell type (columns) of a pathway.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    pathway: the pathway to select communication modes
-    annotations: keys for cell annotations in adata.obs
-    order: deprecated, has no effect (cell types are always stored in sorted order)
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.obs[pathway + '_modes']``.
+    pathway : str
+        Pathway of interest.
+    annotations : str
+        Key in ``adata.obs`` with cell-type annotations.
+    order : list, optional
+        Deprecated, has no effect (cell types are always stored in sorted order).
 
     Returns
     -------
-    frac: the cell fraction matrix (modes x cell types). Row and column labels are stored in
-        adata.uns['pathways'][pathway]['modes'] and ['cell_types'].
-
-    '''
+    numpy.ndarray
+        Modes x cell types matrix of cell counts. Its row and column labels are stored in
+        ``adata.uns['pathways'][pathway]['modes']`` and ``['cell_types']``.
+    """
     if order is not None:
         warnings.warn("The 'order' argument no longer changes how results are stored: cell types are always "
                       "stored in sorted order (see adata.uns['pathways'][pathway]['cell_types']). "
@@ -49,25 +53,23 @@ def state_fractions(adata, pathway, annotations, order=None):
 
 
 def cci_heterogeneity(adata, pathway):
-    '''Compute the ccc heterogeneity score for a given pathway, saved in adata.uns['pathways'][pathway]['cci_heterogeneity']
+    r"""Heterogeneity score of every cell type for a pathway.
 
-    For each cell type, the distribution of its cells across communication modes is compared with the
-    distribution of all cells. The score is 1 minus the average normalized deviation between the two:
-    it is close to 1 when the cell type contains the modes in the same proportions as the whole
-    population (heterogeneous), and close to 0 when its mode composition deviates maximally from it
-    (e.g. all cells of the type in a single, otherwise rare, mode).
-    Versions up to 0.1.0 stored the deviation itself (i.e. 1 - score).
+    See the Notes of :func:`scrich.tl.consensus_clustering` for the definition.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    pathway: CCC pathway of interest
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.uns['fraction_mat'][pathway]``.
+    pathway : str
+        Pathway of interest.
 
     Returns
     -------
     None
-
-    '''
+        Sets ``adata.uns['pathways'][pathway]['cci_heterogeneity']`` (one value per cell type, in the order of
+        ``adata.uns['pathways'][pathway]['cell_types']``).
+    """
     frac = adata.uns['fraction_mat'][pathway]
     n_mode, n_clst = frac.shape
     mode_density = np.sum(frac, axis=1) / np.sum(frac)
@@ -88,23 +90,36 @@ def cci_heterogeneity(adata, pathway):
 
 
 def permutation_testing(adata, key='seurat_clusters', n_sample = 10000, perm_threshold=0.05, seed=0):
-    '''Compute permutation testing to identify statistically significant heterogeneous cell types.
-    Results are saved in adata.uns['permutation_test']
+    r"""Test which cell types are significantly heterogeneous in their communication modes.
+
+    For every selected pathway and cell type, the number of cells in the cell type's most frequent mode,
+    :math:`n_{max}`, is compared with the cell type's size :math:`n`: the p-value is the fraction of
+    ``n_sample`` Poisson draws with mean :math:`n_{max}` that exceed :math:`n`.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    key: adata.obs key for cell annotations
-    n_sample: number of permutation tests
-    perm_threshold: p-value threshold for statistical significance
-    seed: seed of the random number generator, for reproducible p-values (default=0).
-        None uses NumPy's global random state (behaviour of versions up to 0.1.0).
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    key : str, default 'seurat_clusters'
+        Key in ``adata.obs`` with cell-type annotations (the same as used in :func:`scrich.tl.all_path_sim`).
+    n_sample : int, default 10000
+        Number of random draws.
+    perm_threshold : float, default 0.05
+        Significance threshold.
+    seed : int or None, default 0
+        Seed of the random number generator; ``None`` uses NumPy's global random state (scRICH 0.1 behaviour).
 
     Returns
     -------
     None
+        Sets ``adata.uns['permutation_test'] = [cell_types, p_values, significant_pathways]``, where
+        ``p_values`` maps each pathway to one p-value per cell type (in the order of ``cell_types``) and
+        ``significant_pathways`` lists the pathways with at least one cell type below ``perm_threshold``.
 
-    '''
+    See Also
+    --------
+    scrich.pl.single_pathway_heterogeneity : Heterogeneity scores with significant cell types marked.
+    """
     rng = np.random if seed is None else np.random.RandomState(seed)
     perm_dict = {}
     pathways = adata.uns['selected_pathways']

@@ -20,8 +20,10 @@ _EXTENSION_PALETTES = ("tab20", "tab20b", "tab20c")
 
 
 def _base_colors(cmap: str | Colormap | Sequence, n: int) -> list:
-    """Colours of ``cmap`` in order: the listed colours of a qualitative palette,
-    or ``n`` evenly spaced samples of a continuous colormap."""
+    """Colours of ``cmap`` in order.
+
+    The listed colours of a qualitative palette, or ``n`` evenly spaced samples of a continuous colormap.
+    """
     if isinstance(cmap, str):
         if cmap in mpl.color_sequences:
             return list(mpl.color_sequences[cmap])
@@ -164,9 +166,51 @@ def plot_function(aliases: dict[str, str] | None = None):
                 return out  # functions that return data (e.g. return_curve=True)
             return result
 
+        # documented signature: without the deprecated arguments, with show / return_fig
+        public = [p for name, p in params.items() if name not in _LEGACY]
+        kw = [inspect.Parameter("show", inspect.Parameter.KEYWORD_ONLY, default=None),
+              inspect.Parameter("return_fig", inspect.Parameter.KEYWORD_ONLY, default=False)]
+        var_kw = [p for p in public if p.kind is inspect.Parameter.VAR_KEYWORD]
+        public = [p for p in public if p.kind is not inspect.Parameter.VAR_KEYWORD]
+        wrapper.__signature__ = inspect.Signature(public + kw + var_kw)
+        wrapper.__doc__ = _add_common_docs(func.__doc__)
         return wrapper
 
     return decorator
+
+
+_COMMON_PARAMS = """show : bool or None, default None
+    Show the figure. ``None`` follows :attr:`scrich.settings.autoshow` (True by default).
+return_fig : bool, default False
+    Return the figure (:class:`matplotlib.figure.Figure`, or the plotly figure for alluvial plots)
+    instead of the axes."""
+
+_LEGACY_NOTE = """The arguments ``savefig``, ``showfig``, ``figname``, ``format`` and ``dpi`` of scRICH <= 0.1 are
+deprecated: they still work but raise a :class:`FutureWarning`. Save figures from the returned object
+instead, e.g. ``ax = ...(show=False); ax.figure.savefig("plot.pdf")``."""
+
+
+def _add_common_docs(doc):
+    """Insert the documentation of ``show`` / ``return_fig`` into a NumPy-style docstring."""
+    if not doc:
+        return doc
+    doc = inspect.cleandoc(doc)
+    marker = "\nReturns\n-------"
+    if marker in doc:
+        head, tail = doc.split(marker, 1)
+        doc = head.rstrip() + "\n" + _COMMON_PARAMS + "\n" + marker + tail
+    else:
+        doc = doc.rstrip() + "\n\nParameters\n----------\n" + _COMMON_PARAMS if "\nParameters\n" not in doc \
+            else doc.rstrip() + "\n" + _COMMON_PARAMS
+    notes = "\nNotes\n-----\n"
+    if notes in doc:
+        doc = doc.replace(notes, notes + _LEGACY_NOTE + "\n\n", 1)
+    else:
+        # Notes go after Returns / See Also and before Examples
+        idx = doc.find("\nExamples\n--------")
+        block = "\n\nNotes\n-----\n" + _LEGACY_NOTE + "\n"
+        doc = (doc.rstrip() + block) if idx < 0 else (doc[:idx].rstrip() + block + doc[idx:])
+    return doc
 
 
 def _legacy_save(fig, opts):

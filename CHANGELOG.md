@@ -83,6 +83,19 @@
   `mode_to_plot=<mode>` drew stray panels, and `plot_maps` / `sign_prob_plot` failed with more than 5 / 3 modes;
   `expr_map` no longer requires targets; `sign_prob_plot` etc. draw on the given `ax`.
 
+### Documentation (Phase 4-5)
+- NumPy-style docstrings for every public function of `scrich.tl`, `scrich.pl` and `scrich.db` (parameters
+  with types and defaults, what is stored in `adata`, returns, notes, cross-references and examples), and
+  for the internal helpers. Checked with ruff's pydocstyle rules (`D`, numpy convention).
+- Plot functions share the documentation of `show` / `return_fig` and a note on the deprecated arguments,
+  added by the `plot_function` decorator; their documented signature hides the deprecated arguments.
+- Sphinx documentation in `docs/` (furo theme, autosummary + napoleon for the API reference, myst-nb for the
+  tutorials, shown with their saved outputs) with pages on installation, the analysis steps and the
+  `adata` fields they create, databases, plotting, tutorials, API reference and changelog.
+  `.readthedocs.yaml` configures Read the Docs.
+- Small fixes found while documenting: `pl.single_pathway_heterogeneity(show_perm=False)` had no effect;
+  error bars of the summary plots with `orientation='horizontal'` were drawn horizontally.
+
 ### Fixes
 - `pl.pattern(..., human=True)` read the *receptor* table as ligands; now reads the ligand table.
 - `tl.all_path_sim(..., target=True, human=False)` loaded the human TF database; it now uses mouse.

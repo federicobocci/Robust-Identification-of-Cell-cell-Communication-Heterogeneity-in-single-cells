@@ -5,20 +5,31 @@ import pandas as pd
 
 
 def rename_modes(adata, pathway, mode_dict):
-    '''Rename CCC modes of a pathway
+    r"""Rename the communication modes of a pathway.
+
+    Modes are stored as an ordered categorical that keeps the original mode order, so results that depend on
+    the modes (e.g. :func:`scrich.tl.find_sign_patterns`) are unchanged by one-to-one renaming.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    pathway: pathways whose mode are renamed
-    mode_dict: dictionary mapping old mode labels to new names, e.g. {0: 'Receiver', 1: 'Inactive'}.
-        Modes not in the dictionary keep their label. Several modes can be given the same name to merge them.
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.obs[pathway + '_modes']``.
+    pathway : str
+        Pathway whose modes are renamed.
+    mode_dict : dict
+        Old mode label -> new name, e.g. ``{0: 'Receiver', 1: 'Inactive', 2: 'Sender/Receiver'}``. Modes not in
+        the dictionary keep their label (converted to text if any new name is text). Several modes can be
+        given the same name to merge them.
 
     Returns
     -------
     None
+        Updates ``adata.obs[pathway + '_modes']``.
 
-    '''
+    Examples
+    --------
+    >>> ri.tl.rename_modes(adata, "IGF", {0: "Receiver", 1: "Inactive", 2: "Sender/Receiver"})  # doctest: +SKIP
+    """
     col = adata.obs[pathway + '_modes']
     if isinstance(col.dtype, pd.CategoricalDtype):
         old_order = list(col.cat.categories)
@@ -39,18 +50,22 @@ def rename_modes(adata, pathway, mode_dict):
 
 
 def rename_cells(adata, cell_dict, key='clusters'):
-    '''Rename cell annotations
+    r"""Rename cell annotations.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    cell_dict: dictionary with new cell type names
-    key: adata.obs key that stores cell annotations
+    adata : anndata.AnnData
+        Annotated data matrix.
+    cell_dict : dict
+        Old label -> new label; labels not in the dictionary are unchanged.
+    key : str, default 'clusters'
+        Key in ``adata.obs`` with the annotations.
 
     Returns
     -------
-
-    '''
+    None
+        Updates ``adata.obs[key]``.
+    """
     old_cell = np.asarray(adata.obs[key])
     new_cell = old_cell.copy()
     for i in range(new_cell.size):

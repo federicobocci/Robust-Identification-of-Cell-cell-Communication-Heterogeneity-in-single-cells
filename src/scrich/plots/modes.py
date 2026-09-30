@@ -27,33 +27,43 @@ def plot_mode_gap(adata,
                   savefig=True,
                   figname='eigen_gap.pdf',
                   format='pdf'):
-    '''Plot the sorted eigenvalues and gap between them to identify the optimal number of signaling modes
-    By default, the figure is saved in the directory. filepath must be added in the 'figname' argument
+    r"""Eigenvalues used to choose the number of communication modes of a pathway.
+
+    Shows the smallest eigenvalues of the normalized Laplacian of the similarity matrix and the gaps between
+    consecutive eigenvalues; the optimal number of modes is at the largest gap.
 
     Parameters
     ----------
-    adata: anndata pbject of gene counts
-    pathway: pathway of interest
-    max: max number of eigenvalues to display
-    tick_fontize: fontsize of tick labels (default=10)
-    axis_fontsize: fontsize of axis labels (default=10)
-    legend_fontsize: fontsize of legend (default=10)
-    eigen_style: pyplot style for eigenvalues (defalut='bo')
-    gap_style: pyplot style for gap (default='r-')
-    legend: if True, plot legend (default=True)
-    legend_loc: legend position (default='best')
-    figsize: size of figure (default=(5,4))
-    showfig: if True, show figure (default=False)
-    savefig: if True, save figure (default=True)
-    figname: name and path of saved figure (default='eigen_gap.pdf')
-    format: format of saved figure (default='pdf')
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    pathway : str
+        Pathway of interest.
+    max : int, default 10
+        Number of eigenvalues to show.
+    tick_fontize : int, default 10
+        Font size of the tick labels.
+    axis_fontsize : int, default 10
+        Font size of the axis labels.
+    legend_fontsize : int, default 10
+        Font size of the legend.
+    eigen_style : str, default 'bo'
+        Matplotlib format string for the eigenvalues.
+    gap_style : str, default 'r-'
+        Matplotlib format string for the gaps.
+    legend : bool, default True
+        Show the legend.
+    legend_loc : str, default 'best'
+        Legend position.
+    figsize : tuple, default (5, 4)
+        Figure size.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created by default.
 
     Returns
     -------
-    None
-
-    '''
-
+    matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+    """
     # extract spectral information from adata
     w = adata.uns['SymNMF'][pathway]['eigenvalues']
     gap = adata.uns['SymNMF'][pathway]['gap']
@@ -79,6 +89,42 @@ def plot_mode_gap(adata,
 @plot_function(aliases={'legens_pos': 'legend_pos'})
 def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legend_pos=(0.5, 1.2), legend_loc='upper center', ncol=4, legend_font=10,
                  plot_figure=True, figsize=(4,4), basis='umap', showfig=False, savefig=True, figname='umap_scatter.pdf', format='pdf'):
+    r"""Cells on an embedding (e.g. UMAP), coloured by a categorical annotation such as communication modes.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.obsm['X_' + basis]``.
+    key : str
+        Key in ``adata.obs`` to colour by, e.g. ``'IGF_modes'``.
+    s : float, default 2
+        Marker size.
+    order : list, optional
+        Categories to plot and their order; by default all, in the stored mode order.
+    cmap : matplotlib colormap, optional
+        Colours of the categories (default ``Set2``, extended automatically for many categories).
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created by default.
+    legend_pos : tuple, default (0.5, 1.2)
+        Legend anchor (``bbox_to_anchor``).
+    legend_loc : str, default 'upper center'
+        Legend location.
+    ncol : int, default 4
+        Number of legend columns.
+    legend_font : int, default 10
+        Legend font size.
+    plot_figure : bool, default True
+        Apply the tight layout.
+    figsize : tuple, default (4, 4)
+        Figure size.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+    """
     if order is None:
         order = _mode_order(adata.obs[key])
 
@@ -107,6 +153,30 @@ def scatter2D(adata, key, s=2, order=None, cmap=None, ax=None, legend_pos=(0.5, 
 @plot_function()
 def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
                  plot_figure=True, figsize=(2,4), showfig=False, savefig=True, figname='mode_violin.pdf', format='pdf'):
+    r"""Receptor and ligand expression in each communication mode of a pathway (violin plots).
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    key : str
+        Modes of the pathway, ``pathway + '_modes'`` (e.g. ``'IGF_modes'``).
+    order : list, optional
+        Modes to show and their order; by default all, in the stored mode order.
+    cmap : matplotlib colormap, optional
+        Colours of the modes (default ``Set2``).
+    legend_font : int, default 10
+        Font size.
+    plot_figure : bool, default True
+        Apply the tight layout.
+    figsize : tuple, default (2, 4)
+        Figure size.
+
+    Returns
+    -------
+    list of matplotlib.axes.Axes or None
+        The receptor and ligand axes if ``show=False``, otherwise ``None``.
+    """
     if order is None:
         order = _mode_order(adata.obs[key])
 
@@ -158,6 +228,32 @@ def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
 @plot_function()
 def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blues', basis='umap',
                  plot_figure=True, showfig=False, savefig=True, figname='pathway_scatter.pdf', format='pdf'):
+    r"""Average ligand, receptor (and downstream-gene) expression of a pathway on an embedding.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    pathway : str
+        Pathway of interest.
+    include : list or 'all', default 'all'
+        Cell types (values of ``adata.obs[key]``) to show.
+    key : str, default 'clusters'
+        Key in ``adata.obs`` with cell-type annotations, used with ``include``.
+    s : float, default 10
+        Marker size.
+    cmap : str, default 'Blues'
+        Colormap.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+    plot_figure : bool, default True
+        Apply the tight layout.
+
+    Returns
+    -------
+    list of matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+    """
     if include!='all':
         adata = adata[adata.obs[key].isin(include)].copy()
 
@@ -199,17 +295,30 @@ def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blue
 @plot_function()
 def feature_plot(adata, pathway=None, key='average', cells='all', groupby='clusters', basis='umap',
                  figsize=(6,3), showfig=False, savefig=True, figname='single_path_role.pdf', format='pdf'):
-    '''Total ligand and receptor expression of a pathway on an embedding.
+    r"""Total ligand and receptor expression of a pathway on an embedding.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    pathway: pathway of interest
-    key: only 'average' (sum of ligand / receptor expression) is supported
-    cells: 'all' or a value of adata.obs[groupby] to plot only those cells
-    groupby: adata.obs key used to select cells when cells != 'all'
-    basis: embedding in adata.obsm['X_' + basis] (default='umap')
-    '''
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.pathways_overview` or :func:`scrich.tl.find_genes`.
+    pathway : str
+        Pathway of interest.
+    key : {'average'}, default 'average'
+        Summary of the genes; only the sum of ligand / receptor expression is currently supported.
+    cells : str, default 'all'
+        ``'all'`` or a value of ``adata.obs[groupby]`` to show only those cells.
+    groupby : str, default 'clusters'
+        Key in ``adata.obs`` used to select cells when ``cells != 'all'``.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+    figsize : tuple, default (6, 3)
+        Figure size.
+
+    Returns
+    -------
+    list of matplotlib.axes.Axes or None
+        The ligand and receptor axes if ``show=False``, otherwise ``None``.
+    """
     if key != 'average':
         raise ValueError("feature_plot currently supports only key='average'.")
     adata_sel = adata if cells == 'all' else adata[adata.obs[groupby] == cells].copy()

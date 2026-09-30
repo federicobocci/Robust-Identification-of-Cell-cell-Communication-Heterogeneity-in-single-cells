@@ -96,6 +96,17 @@ set of a pathway (2), integrating LIANA (3), comparing RNA velocity methods (4) 
 transcriptomics (5). Datasets for tutorials 3–5 are on Zenodo, record
 [19859013](https://zenodo.org/records/19859014).
 
+## Documentation
+
+The documentation (installation, analysis steps, databases, plotting, tutorials and the API reference
+generated from the docstrings) is in `docs/` and is built with Sphinx for Read the Docs
+(`.readthedocs.yaml`). To build it locally:
+
+```bash
+pip install -e ".[docs]"
+sphinx-build -b html docs docs/_build/html      # then open docs/_build/html/index.html
+```
+
 ## Development
 
 ```bash

@@ -7,55 +7,59 @@ from .. import db
 
 
 def layer_2_DB(species='human'):
-    '''
-    Load the Receptor-transcription factor database and return it as a dataframe
+    r"""Receptor -> transcription factor table of the exFinder database.
 
     Parameters
     ----------
-    species: human or mouse (default: human)
+    species : {'human', 'mouse'}, default 'human'
+        Species.
 
     Returns
     -------
-    TDB: pandas dataframe of receptor-TF interactions
-
-    '''
+    pandas.DataFrame
+        Columns ``from`` (receptor), ``to`` (transcription factor) and ``source``.
+    """
     TDB = db.load_exfinder('rtf', species=species)
     return TDB
 
 
 def get_TF(rec_dct, tf_df, pathway):
-    '''
-    Extract the transcription factors of a given pathway
+    r"""Transcription factors downstream of the receptors of a pathway.
 
     Parameters
     ----------
-    rec_dct: dictionary of receptors per pathway
-    tf_df: dataframe of transcription factor (output of layer_2_DB)
-    pathway: pathway of interest
+    rec_dct : dict
+        Pathway -> list of receptors.
+    tf_df : pandas.DataFrame
+        Receptor -> transcription factor table (:func:`layer_2_DB`).
+    pathway : str
+        Pathway of interest.
 
     Returns
     -------
-    tf_list: list of TFs for the pathway
-
-    '''
+    list of str
+        Transcription factors (in no particular order).
+    """
     start_list = rec_dct[pathway]
     tf_list = list(set(list(tf_df[tf_df['from'].isin(start_list)]['to'])))
     return tf_list
 
 
 def get_counts(adata, unspliced=False):
-    '''Average expression of every gene across cells
+    r"""Average expression of every gene across cells.
 
     Parameters
     ----------
-    adata: anndata object
-    unspliced: if True, use the imputed unspliced + spliced layers (Mu + Ms), otherwise adata.X
+    adata : anndata.AnnData
+        Annotated data matrix.
+    unspliced : bool, default False
+        Use ``adata.layers['Mu'] + adata.layers['Ms']`` instead of ``adata.X``.
 
     Returns
     -------
-    count_df: dataframe with columns 'gene' and 'avg_count' (one row per gene)
-
-    '''
+    pandas.DataFrame
+        Columns ``gene`` and ``avg_count``, one row per gene.
+    """
     genes = list(adata.var_names)
 
     if unspliced:
@@ -69,20 +73,22 @@ def get_counts(adata, unspliced=False):
 
 
 def select_top_tf(count_df, tf_list, n=10):
-    '''
-    Select the top transcription factors of a pathway that are highly expressed in the dataset
+    r"""Most expressed genes of a list.
 
     Parameters
     ----------
-    count_df: dataframe with geneset and average expression in the dataset
-    tf_list: list of transcription factors in the pathway
-    n: number of top TF to keep (default=10)
+    count_df : pandas.DataFrame
+        Average expression per gene (:func:`get_counts`).
+    tf_list : list of str
+        Candidate genes; genes not in the data are ignored.
+    n : int, default 10
+        Number of genes to keep.
 
     Returns
     -------
-    keep: list of top TF
-
-    '''
+    list of str
+        Up to ``n`` genes, in the order of ``adata.var_names``.
+    """
     geneset = list(count_df['gene'])
     intersect = [t for t in tf_list if t in geneset]
 
@@ -95,23 +101,37 @@ def select_top_tf(count_df, tf_list, n=10):
 
 
 def import_database(adata, pathways, top=10, unspliced=False, species='human', input_target=None):
-    '''Find target genes of CCC pathways, either using the built-in database or passed by user via input_target.
-    results are stored in adata.uns['TF'].
+    r"""Select the downstream genes (transcription factors) of each pathway.
+
+    For every pathway, the transcription factors regulated by its receptors are taken from layer 2
+    (receptor -> transcription factor) of the exFinder database, or from ``input_target``, and the ``top``
+    most expressed ones in the data are kept. The database is downloaded on first use, see
+    :mod:`scrich.db`.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    pathways: list of pathways for whom to identify targets
-    top: number of top pathways to consider
-    unspliced: if True, use unspliced counts to estimate top expressed CCC pathways
-    species: human (default) or mouse
-    input_target: a dictionary linking CCC pathways to lists of target genes (if the target genes are provided by the user)
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.pathways_overview` or :func:`scrich.tl.find_genes`.
+    pathways : list of str
+        Pathways of interest.
+    top : int, default 10
+        Number of downstream genes to keep per pathway.
+    unspliced : bool, default False
+        Rank genes by ``adata.layers['Mu'] + adata.layers['Ms']`` instead of ``adata.X``.
+    species : {'human', 'mouse'}, default 'human'
+        Species of the database.
+    input_target : dict, optional
+        Pathway -> list of downstream genes provided by the user; overrides the database for those pathways.
 
     Returns
     -------
     None
+        Sets ``adata.uns['TF']``: pathway -> list of selected downstream genes.
 
-    '''
+    Examples
+    --------
+    >>> ri.tl.import_database(adata, ["IGF"], species="mouse", unspliced=True)  # doctest: +SKIP
+    """
     input_target = {} if input_target is None else input_target
     missing = [p for p in pathways if p not in adata.uns.get('pathways', {})]
     if missing:

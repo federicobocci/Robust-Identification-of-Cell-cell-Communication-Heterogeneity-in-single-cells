@@ -13,6 +13,20 @@ go = LazyModule("plotly.graph_objects", extra="alluvial")
 
 
 def compute_weight(list1, list2, v1, v2):
+    r"""Number of cells with value ``v1`` in ``list1`` and ``v2`` in ``list2``.
+
+    Parameters
+    ----------
+    list1, list2 : list
+        Labels of every cell.
+    v1, v2 : object
+        Labels to count.
+
+    Returns
+    -------
+    int
+        Number of cells.
+    """
     w = 0
     for l1, l2 in zip(list1, list2):
         if l1==v1 and l2==v2:
@@ -22,6 +36,20 @@ def compute_weight(list1, list2, v1, v2):
 
 def set_color(map, features):
     # convert colors from matplotlib colormap to RGB
+    r"""Plotly ``rgb(...)`` colours for a list of categories.
+
+    Parameters
+    ----------
+    map : matplotlib colormap
+        Colormap.
+    features : list
+        Categories.
+
+    Returns
+    -------
+    list of str
+        One colour per category.
+    """
     colors = discrete_colors(map, len(features))
     colorlist = []
     for i in range(len(features)):
@@ -33,7 +61,28 @@ def set_color(map, features):
 def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
                     savefig=False, figname='compare_paths.pdf', format='pdf', showfig=False, strip_text=False):
+    r"""Alluvial (Sankey) diagram between two labellings of the same cells.
 
+    Parameters
+    ----------
+    v1, v2 : list
+        Left and right label of every cell.
+    lab1, lab2 : list
+        Left and right categories (node order).
+    col1, col2 : list of str
+        Node colours.
+    name1, name2 : str
+        Titles of the two sides.
+    alpha, pad, thickness, linecolor, linewidth, width, height, font_size, strip_text
+        See :func:`scrich.pl.alluvial_onepath`.
+    savefig, figname, format, showfig
+        Not used (saving and showing are handled by the public functions).
+
+    Returns
+    -------
+    plotly.graph_objects.Figure
+        The figure.
+    """
     label=lab1+lab2
 
     source, target, value, edge_color = [], [], [], []
@@ -75,7 +124,50 @@ def twostate_sankey(v1, v2, lab1, lab2, col1, col2, name1, name2, alpha=0.5,
 def alluvial_onepath(adata, pathway, key, map1=plt.cm.Set3, map2=plt.cm.Set2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
                      savefig=False, figname='alluvial.pdf', format='pdf', showfig=False, strip_text=False):
+    r"""Alluvial plot between cell types and the communication modes of a pathway.
 
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    pathway : str
+        Pathway of interest.
+    key : str
+        Key in ``adata.obs`` with cell-type annotations.
+
+    map1 : matplotlib colormap, default Set3
+        Colours of the left nodes.
+    map2 : matplotlib colormap
+        Colours of the right nodes (default ``Set2``; ``tab20`` for patterns).
+    alpha : float, default 0.5
+        Transparency of the links.
+    pad : float, default 5
+        Padding between nodes (pixels).
+    thickness : float, default 40
+        Node thickness (pixels).
+    linecolor : str, default 'black'
+        Node outline colour.
+    linewidth : float, default 1
+        Node outline width.
+    width : int, default 400
+        Figure width (pixels).
+    height : int, default 600
+        Figure height (pixels).
+    font_size : int, default 15
+        Font size.
+    strip_text : bool, default False
+        Hide all text.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or None
+        The figure if ``show=False``, otherwise ``None``. Save it with ``fig.write_html('plot.html')``, or
+        ``fig.write_image('plot.pdf')`` (requires ``kaleido``).
+
+    Notes
+    -----
+    Requires ``plotly``: ``pip install 'scrich[alluvial]'``.
+    """
     memb = list(adata.obs[key])
     p = list(adata.obs[pathway+'_modes'])
 
@@ -95,6 +187,52 @@ def alluvial_onepath(adata, pathway, key, map1=plt.cm.Set3, map2=plt.cm.Set2, al
 def alluvial_twopath(adata, pathway1, pathway2, include='all', key='clusters', map1=plt.cm.Set3, map2=plt.cm.Set2, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
                      savefig=False, figname='compare_paths.pdf', format='pdf', showfig=False, strip_text=False):
+    r"""Alluvial plot between the communication modes of two pathways.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    pathway1, pathway2 : str
+        Pathways to compare.
+    include : list or 'all', default 'all'
+        Cell types (values of ``adata.obs[key]``) to include.
+    key : str, default 'clusters'
+        Key in ``adata.obs`` with cell-type annotations, used with ``include``.
+
+    map1 : matplotlib colormap, default Set3
+        Colours of the left nodes.
+    map2 : matplotlib colormap
+        Colours of the right nodes (default ``Set2``; ``tab20`` for patterns).
+    alpha : float, default 0.5
+        Transparency of the links.
+    pad : float, default 5
+        Padding between nodes (pixels).
+    thickness : float, default 40
+        Node thickness (pixels).
+    linecolor : str, default 'black'
+        Node outline colour.
+    linewidth : float, default 1
+        Node outline width.
+    width : int, default 400
+        Figure width (pixels).
+    height : int, default 600
+        Figure height (pixels).
+    font_size : int, default 15
+        Font size.
+    strip_text : bool, default False
+        Hide all text.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or None
+        The figure if ``show=False``, otherwise ``None``. Save it with ``fig.write_html('plot.html')``, or
+        ``fig.write_image('plot.pdf')`` (requires ``kaleido``).
+
+    Notes
+    -----
+    Requires ``plotly``: ``pip install 'scrich[alluvial]'``.
+    """
     if include!='all':
         adata = adata[adata.obs[key].isin(include)].copy()
     p1 = list(adata.obs[pathway1 + '_modes'])
@@ -122,6 +260,48 @@ def alluvial_twopath(adata, pathway1, pathway2, include='all', key='clusters', m
 def alluvial_pattern(adata, key, map1=plt.cm.Set3, map2=plt.cm.tab20, alpha=0.5,
                      pad=5, thickness=40, linecolor='black', linewidth=1, width=400, height=600, font_size=15,
                      savefig=False, figname='patterns.pdf', format='pdf', showfig=False, strip_text=False):
+    r"""Alluvial plot between cell types and signaling patterns.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.find_sign_patterns`.
+    key : str
+        Key in ``adata.obs`` with cell-type annotations.
+
+    map1 : matplotlib colormap, default Set3
+        Colours of the left nodes.
+    map2 : matplotlib colormap
+        Colours of the right nodes (default ``Set2``; ``tab20`` for patterns).
+    alpha : float, default 0.5
+        Transparency of the links.
+    pad : float, default 5
+        Padding between nodes (pixels).
+    thickness : float, default 40
+        Node thickness (pixels).
+    linecolor : str, default 'black'
+        Node outline colour.
+    linewidth : float, default 1
+        Node outline width.
+    width : int, default 400
+        Figure width (pixels).
+    height : int, default 600
+        Figure height (pixels).
+    font_size : int, default 15
+        Font size.
+    strip_text : bool, default False
+        Hide all text.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or None
+        The figure if ``show=False``, otherwise ``None``. Save it with ``fig.write_html('plot.html')``, or
+        ``fig.write_image('plot.pdf')`` (requires ``kaleido``).
+
+    Notes
+    -----
+    Requires ``plotly``: ``pip install 'scrich[alluvial]'``.
+    """
     clusters, patterns = list(adata.obs[key]), np.asarray(adata.obs['sign_pattern'], dtype='int')
 
     states, modes = sorted(list(set(clusters))), sorted(list(set(patterns)))

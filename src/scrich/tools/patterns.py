@@ -13,33 +13,54 @@ from ._utils import _mode_codes, _quiet_pandas
 
 
 def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0, seed=42, print_info=True):
-    '''Identify CCC patterns across several pathways by clustering cells based on the CCC modes
+    r"""Identify signaling patterns: groups of cells with similar communication modes across pathways.
 
-    Cells are described by their communication mode in each pathway. A k-nearest-neighbour
-    graph is built on these profiles (after PCA) and clustered with Leiden.
-
-    Because many cells share exactly the same combination of modes, a small ``n_neighbors``
-    can split the graph into disconnected pieces. Leiden cannot merge disconnected pieces,
-    so their number is a lower bound on the number of patterns, whatever the resolution.
-    The number of pieces is reported and a warning is raised when there is more than one.
+    Each cell is described by its communication mode in every pathway. A nearest-neighbour graph is built on
+    these profiles (after PCA) and clustered with Leiden. Marker genes of each pattern are then computed with
+    :func:`scanpy.tl.rank_genes_groups`.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    paths: list of pathways to use in the clustering (default: 'all', i.e. adata.uns['selected_pathways'])
-    res: Leiden clustering resolution (lower values give fewer, larger patterns)
-    n_neighbors: number of nearest neighbours in the cell graph (default=30). Increase it if the graph
-        is split into several pieces. Versions up to 0.1.0 used a fixed value of 10.
-    random_state: seed for the neighbour search, UMAP and Leiden, for reproducible results (default=0)
-    seed: seed for NumPy's global random generator (kept for backward compatibility)
-    print_info: if True, print the number of patterns found and the number of cells in each
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    paths : list of str or 'all', default 'all'
+        Pathways to use; ``'all'`` uses ``adata.uns['selected_pathways']``.
+    res : float, default 1
+        Leiden resolution; lower values give fewer, larger patterns.
+    n_neighbors : int, default 30
+        Number of neighbours of the cell graph. Many cells share identical mode combinations, so small values
+        can split the graph into disconnected pieces, each giving at least one pattern whatever the
+        resolution (a warning is raised). scRICH 0.1 used 10.
+    random_state : int, default 0
+        Seed of PCA, neighbour search, UMAP and Leiden.
+    seed : int, default 42
+        Seed of NumPy's global random generator (kept for backward compatibility).
+    print_info : bool, default True
+        Report the number of patterns and the number of cells in each.
 
     Returns
     -------
-    None. Patterns are stored in adata.obs['sign_pattern'], marker genes in adata.uns['rank_genes_groups']
-    and the parameters used in adata.uns['sign_pattern_params'].
+    None
+        Sets the following fields:
 
-    '''
+        - ``adata.obs['sign_pattern']``: pattern of each cell.
+        - ``adata.uns['rank_genes_groups']``: marker genes of each pattern.
+        - ``adata.uns['sign_pattern_params']``: parameters used and number of disconnected graph pieces.
+
+    Notes
+    -----
+    Modes renamed with :func:`scrich.tl.rename_modes` keep their original order, so renaming does not change
+    the patterns.
+
+    See Also
+    --------
+    scrich.pl.pattern_summary : Pattern composition of every cell type.
+    scrich.pl.pattern : Details of one pattern.
+
+    Examples
+    --------
+    >>> ri.tl.find_sign_patterns(adata, res=0.05)  # doctest: +SKIP
+    """
     np.random.seed(seed)
     if paths=='all':
         paths = adata.uns['selected_pathways']
@@ -94,19 +115,20 @@ def find_sign_patterns(adata, paths='all', res=1, n_neighbors=30, random_state=0
 
 
 def twopath_mutual_info(adata, path1, path2):
-    '''Compute mutual information between CCC modes of two pathways
+    r"""Mutual information between the communication modes of two pathways.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    path1: first pathway
-    path2: second pathway
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.obs[path1 + '_modes']`` and ``adata.obs[path2 + '_modes']``.
+    path1, path2 : str
+        Pathways to compare.
 
     Returns
     -------
-    mi_skl: mutual information
-
-    '''
+    float
+        Mutual information (in nats, :func:`sklearn.metrics.mutual_info_score`).
+    """
     lab1 = np.asarray(adata.obs[path1 + '_modes'])
     lab2 = np.asarray(adata.obs[path2 + '_modes'])
     mi_skl = mutual_info_score(lab1, lab2)
@@ -114,18 +136,26 @@ def twopath_mutual_info(adata, path1, path2):
 
 
 def pairwise_MI(adata):
-    '''Compute pairwise mutual information between all pairs of CCC pathways.
-    Results are saved as 2D array in adata.uns['CCC_similarity_map']
+    r"""Mutual information between the communication modes of all pairs of selected pathways.
+
+    High values indicate redundant pathways, i.e. pathways that divide cells into modes in a similar way.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
 
     Returns
     -------
     None
+        Sets ``adata.uns['CCC_similarity_map']``: pathways x pathways matrix of mutual information, in the
+        order of ``adata.uns['selected_pathways']``.
 
-    '''
+    See Also
+    --------
+    scrich.pl.redundancy : Plot the matrix.
+    scrich.pl.pathway_hierarchy : Hierarchical clustering of pathways.
+    """
     pathways = adata.uns['selected_pathways']
 
     sim_mat = np.zeros((len(pathways), len(pathways)))

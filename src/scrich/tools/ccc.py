@@ -11,10 +11,36 @@ from numba import jit
 
 @jit(nopython=True)
 def mass_act(R, L, K=0.5):
+    r"""Mass-action interaction :math:`LR / (K + LR)`.
+
+    Parameters
+    ----------
+    R, L : float
+        Receptor and ligand levels.
+    K : float, default 0.5
+        Half-saturation constant.
+
+    Returns
+    -------
+    float
+        Interaction strength.
+    """
     return (L*R)/(K + L*R)
 
 @jit(nopython=True)
 def alpha(R, L):
+    r"""Diffusion-model interaction :math:`\exp(-1/(LR))` (0 if :math:`L` or :math:`R` is 0).
+
+    Parameters
+    ----------
+    R, L : float
+        Receptor and ligand levels.
+
+    Returns
+    -------
+    float
+        Interaction strength.
+    """
     if L==0. or R==0.:
         return 0
     else:
@@ -22,6 +48,18 @@ def alpha(R, L):
 
 @jit(nopython=True)
 def beta(T_act):
+    r"""Response of downstream genes :math:`\exp(-1/T)` (0 if :math:`T` is 0).
+
+    Parameters
+    ----------
+    T_act : float
+        Downstream-gene level.
+
+    Returns
+    -------
+    float
+        Response factor.
+    """
     if T_act==0.:
         return 0
     else:
@@ -36,6 +74,20 @@ def beta(T_act):
 ############################################################################
 @jit(nopython=True)
 def P_pair_LR(R, L, model='mass_action'):
+    r"""Interaction between a sender and a receiver from ligand and receptor levels.
+
+    Parameters
+    ----------
+    R, L : float
+        Receptor and ligand levels.
+    model : {'mass_action', 'diffusion'}, default 'mass_action'
+        Interaction model.
+
+    Returns
+    -------
+    float
+        Interaction strength.
+    """
     if model=='mass_action':
         return mass_act(R, L)
     else:
@@ -44,6 +96,22 @@ def P_pair_LR(R, L, model='mass_action'):
 @jit(nopython=True)
 def P_pair_LRU(R, L, T_act, model='mass_action'):
     # return alpha(R, L)*K1(L, R, T_act)*beta(T_act)
+    r"""Interaction weighted by the response of downstream genes in the receiver.
+
+    Parameters
+    ----------
+    R, L : float
+        Receptor and ligand levels.
+    T_act : float
+        Downstream-gene level of the receiver.
+    model : {'mass_action', 'diffusion'}, default 'mass_action'
+        Interaction model.
+
+    Returns
+    -------
+    float
+        Interaction strength.
+    """
     if model=='mass_action':
         return mass_act(R, L)*beta(T_act)
     else:
@@ -53,6 +121,33 @@ def P_pair_LRU(R, L, T_act, model='mass_action'):
 
 
 def sign_combs(labels, combs, lig, rec, t_act=None, include_target=False, min_cells=5, model='mass_action', normalize=True):
+    r"""CCC matrix between groups of cells.
+
+    Parameters
+    ----------
+    labels : numpy.ndarray
+        Group label of every cell.
+    combs : list of str
+        Groups (rows and columns of the matrix).
+    lig, rec : numpy.ndarray
+        Scaled ligand and receptor expression of every cell.
+    t_act : numpy.ndarray, optional
+        Scaled downstream-gene expression of every cell (with ``include_target=True``).
+    include_target : bool, default False
+        Weight the interaction by the downstream-gene expression of the receiving group.
+    min_cells : int, default 5
+        Groups with fewer cells get zero interactions.
+    model : {'mass_action', 'diffusion'}, default 'mass_action'
+        Interaction model, see :func:`scrich.tl.compute_ccc_matrix`.
+    normalize : bool, default True
+        Divide the matrix by its sum.
+
+    Returns
+    -------
+    numpy.ndarray
+        Groups x groups matrix; entry ``(i, j)`` is the signal sent by group ``i`` (ligands) to group ``j``
+        (receptors).
+    """
     ccc_mat = np.zeros((len(combs), len(combs)))
     for i in range(len(combs)):
         lig_sel = lig[labels == combs[i]]
@@ -76,27 +171,61 @@ def sign_combs(labels, combs, lig, rec, t_act=None, include_target=False, min_ce
 
 def compute_ccc_matrix(adata, pathway, key='clusters', include_target=False, use_velocity=False, perm_test=False,
                        min_cells=5, model='mass_action', conversion=True, moments=False):
-    '''Compute the CCC matrix at meta cell resolution for a given pathway.
-    the matrix and metacell states are stored in adata.uns['ccc_mat'][pathway].
+    r"""Cell-cell communication matrix of a pathway between cell states.
+
+    Cells are grouped into *states*, the combinations of cell type and communication mode (e.g. ``'Er-1-0'``
+    for mode 0 of cell type ``'Er-1'``). The interaction from state :math:`i` to state :math:`j` is computed
+    from the mean ligand expression :math:`L_i` of the sender and the mean receptor expression :math:`R_j`
+    of the receiver:
+
+    - ``model='mass_action'``: :math:`P_{ij} = L_i R_j / (K + L_i R_j)` with :math:`K = 0.5`;
+    - ``model='diffusion'``: :math:`P_{ij} = \exp(-1 / (L_i R_j))`.
+
+    With ``include_target=True`` the interaction is multiplied by :math:`\exp(-1/T_j)`, where :math:`T_j` is
+    the mean expression (or RNA velocity) of the pathway's downstream genes in the receiver. Expression
+    values are scaled to a maximum of 1 and the matrix is normalized to sum 1.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    pathway: the CCC pathway of interest
-    key: adata.obs key for cell annotations
-    include_target: if true, include downstream targets of the pathway
-    use_velocity: if true, use RNA velocity to estimate target gene response
-    perm_test: if TRue, split cell types into meta-cells only if the permutation test is significant
-    min_cells: minimum number of cells to consider a metacell in the calculation
-    model: mass_action or diffucion model of CCC
-    conversion: if true, reverse log-scaling of gene expression data before using gene expression for CCC estimation
-    moments: if true, use the imputed layer of adata instead or counts
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`.
+    pathway : str
+        Pathway of interest.
+    key : str, default 'clusters'
+        Key in ``adata.obs`` with cell-type annotations.
+    include_target : bool, default False
+        Weight interactions by the downstream genes in ``adata.uns['TF'][pathway]``
+        (see :func:`scrich.tl.import_database`).
+    use_velocity : bool, default False
+        Use the RNA velocity of the downstream genes (``adata.layers['velocity']``) instead of their expression.
+    perm_test : bool, default False
+        Split a cell type into its modes only if it is significantly heterogeneous according to
+        :func:`scrich.tl.permutation_testing` (p < 0.05); otherwise the cell type is one state.
+    min_cells : int, default 5
+        States with fewer cells get zero interactions.
+    model : {'mass_action', 'diffusion'}, default 'mass_action'
+        Interaction model.
+    conversion : bool, default True
+        Transform expression values :math:`x` to :math:`10^x` before scaling.
+    moments : bool, default False
+        Use ``adata.layers['Mu'] + adata.layers['Ms']`` for downstream-gene expression instead of ``adata.X``.
 
     Returns
     -------
     None
+        Sets ``adata.uns['ccc_mat'][pathway] = {'states': [...], 'mat': ...}``: the state labels and the
+        states x states matrix (rows: senders, columns: receivers). With ``include_target=True`` also sets
+        ``adata.obs[pathway + '_tar']`` if missing.
 
-    '''
+    See Also
+    --------
+    scrich.pl.chord_diagram : Chord diagram of the matrix.
+    scrich.pl.coarse_grained_map : The matrix on the embedding.
+
+    Examples
+    --------
+    >>> ri.tl.compute_ccc_matrix(adata, "IGF", key="celltype", min_cells=10)  # doctest: +SKIP
+    """
     if model not in ('mass_action', 'diffusion'):
         raise ValueError(f"model must be 'mass_action' or 'diffusion', got {model!r}")
     if use_velocity and 'velocity' not in adata.layers:

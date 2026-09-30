@@ -51,9 +51,9 @@ dev = ["pytest>=8", "pytest-cov", "ruff>=0.6", "pre-commit"]
 docs = [
     "sphinx>=7",
     "furo",
-    "myst-nb",
-    "sphinx-autodoc-typehints",
+    "myst-nb>=1.0",
     "sphinx-copybutton",
+    "sphinx-design",
 ]
 
 [project.urls]
@@ -84,5 +84,13 @@ src = ["src"]
 extend-exclude = ["dev", "tutorials"]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "UP", "B"]
-ignore = ["E501", "E741", "B006", "B008"]
+select = ["E", "F", "W", "I", "UP", "B", "D"]
+ignore = ["E501", "E741", "B006", "B008", "D401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D"]
+"docs/*" = ["D"]
+"scripts/*" = ["D"]

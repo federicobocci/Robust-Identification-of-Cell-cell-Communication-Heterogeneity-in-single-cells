@@ -13,12 +13,12 @@ from .targets import import_database
 
 
 def _coassociation_factor(mat, nsim=5, kmin=3, kmax=6, print_info=True):
-    '''Factor F of the average co-clustering (similarity) matrix, S = F @ F.T.
+    """Factor F of the average co-clustering (similarity) matrix, S = F @ F.T.
 
     Each of the nsim * (kmax - kmin + 1) k-means runs contributes a one-hot cluster-membership block;
     S[i, j] is the fraction of runs in which cells i and j fall in the same cluster. Storing F
     (cells x total number of clusters) instead of S (cells x cells) keeps memory linear in the number of cells.
-    '''
+    """
     if not isinstance(mat, np.ndarray):
         raise TypeError('The expression matrix must be a numpy.ndarray.')
     if not (isinstance(kmin, (int, np.integer)) and isinstance(kmax, (int, np.integer))) or kmin >= kmax:
@@ -46,23 +46,27 @@ def sim_matrix(mat,
                kmax=6,
                print_info=True
                ):
-    '''compute an average similarity matrix based on k-means clustering on expression of ligands and receptors
-
-    Note: the matrix has size cells x cells. all_path_sim() works with its low-rank factor instead
-    (see _coassociation_factor), which needs far less memory.
+    r"""Consensus (co-clustering) similarity matrix of cells from repeated k-means clustering.
 
     Parameters
     ----------
-    mat: numpy array with average expression of ligand and receptors
-    nsim: number of independent k-means clustering solutions for fixed k (default=5)
-    kmin: minimum number of cluster (default=3)
-    kmax: maximum number of cluster (default=6)
+    mat : numpy.ndarray
+        Cells x features matrix (e.g. average receptor and ligand expression per cell).
+    nsim : int, default 5
+        Number of k-means runs (different random seeds) for each number of clusters.
+    kmin : int, default 3
+        Minimum number of clusters.
+    kmax : int, default 6
+        Maximum number of clusters.
+    print_info : bool, default True
+        Report progress.
 
     Returns
     -------
-    sim: similarity matrix
-
-    '''
+    numpy.ndarray
+        Cells x cells matrix; entry ``(i, j)`` is the fraction of runs in which cells ``i`` and ``j`` are in the
+        same cluster. :func:`scrich.tl.all_path_sim` uses a memory-efficient factorized form instead.
+    """
     F = _coassociation_factor(mat, nsim=nsim, kmin=kmin, kmax=kmax, print_info=print_info)
     return F @ F.T
 
@@ -73,25 +77,30 @@ def spectral_analysis_opt(adata,
                       print_info=True,
                       is_factor=False
                       ):
-    '''Find the optimal number of communication modes from the spectrum of the similarity matrix
-    Results for pathway are stored in adata.uns['SymNMF'][pathway]
+    r"""Optimal number of communication modes from the eigenvalue gap of the similarity matrix.
 
-    The 10 smallest eigenvalues of the normalized Laplacian I - D^-1/2 A D^-1/2 are computed and the
-    optimal number of modes is given by the largest gap between consecutive eigenvalues.
+    The 10 smallest eigenvalues of the normalized Laplacian :math:`I - D^{-1/2} S D^{-1/2}` of the similarity
+    matrix :math:`S` are computed; the optimal number of modes is the position of the largest gap between
+    consecutive eigenvalues.
 
     Parameters
     ----------
-    adata: anndata object of gene counts
-    A: similarity matrix (cells x cells), or its factor F with A = F @ F.T if is_factor=True
-    pathway: pathway of interest
-    print_info: if True, report the optimal number of modes
-    is_factor: if True, A is the low-rank factor returned by _coassociation_factor (memory-efficient, same result)
+    adata : anndata.AnnData
+        Annotated data matrix.
+    A : numpy.ndarray
+        Similarity matrix (cells x cells), or its factor ``F`` with ``S = F @ F.T`` if ``is_factor=True``.
+    pathway : str
+        Pathway name, used as key for the results.
+    print_info : bool, default True
+        Report the optimal number of modes.
+    is_factor : bool, default False
+        ``A`` is the low-rank factor of the similarity matrix (exact, memory-efficient).
 
     Returns
     -------
     None
-
-    '''
+        Sets ``adata.uns['SymNMF'][pathway] = {'eigenvalues', 'gap', 'optimal'}``.
+    """
     n_eig = 10
     if is_factor:
         F = np.asarray(A)
@@ -138,27 +147,48 @@ def single_path_sim(adata,
                     print_info=True,
                     return_factor=False
                     ):
-    '''Compute a cell-cell similarity matrix for a given pathway
-    Identified receptors and ligands for pathway are stored in adata.uns['pathways']
-    Average expression of receptors and ligands for pathway are stored in adata.obs
-    Similarity matrix for pathway is stored in adata.uns['similarity']
+    r"""Cell-cell similarity matrix for one pathway.
+
+    Computes the average receptor and ligand expression of the pathway in every cell (and, with
+    ``target=True``, of its downstream genes) and builds a consensus similarity matrix by repeated k-means
+    clustering of these profiles (see ``sim_matrix``). Usually called through
+    :func:`scrich.tl.all_path_sim`.
 
     Parameters
     ----------
-    adata: anndata object with gene counts
-    pathway: pathway of interest
-    target: if True, also use the expression of the pathway's downstream genes (adata.uns['TF'][pathway],
-        from import_database) (default=False)
-    human: deprecated and unused (the pathway genes are taken from adata.uns['pathways'])
-    print_info: print information while executing (default=True)
-    return_factor: if True, return the factor F of the similarity matrix (S = F @ F.T, cells x number of
-        clusters) instead of S itself (cells x cells), which needs much less memory (default=False)
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.pathways_overview` or :func:`scrich.tl.find_genes`.
+    pathway : str
+        Pathway of interest.
+    nsim : int, default 5
+        Number of k-means runs for each number of clusters.
+    kmin : int, default 3
+        Minimum number of clusters used to build the similarity matrix.
+    kmax : int, default 6
+        Maximum number of clusters used to build the similarity matrix.
+    target : bool, default False
+        Also use the average expression of the pathway's downstream genes (``adata.uns['TF'][pathway]``,
+        from :func:`scrich.tl.import_database`). Pathways without expressed downstream genes fall back to
+        receptors and ligands, with a warning.
+    human : bool, optional
+        Deprecated and unused.
+    neighbor_average : bool, default False
+        Average expression over each cell's neighbours (``adata.obsp['distances']``) before clustering.
+    moments : bool, default False
+        Use ``adata.layers['Mu'] + adata.layers['Ms']`` instead of ``adata.X``.
+    print_info : bool, default True
+        Report progress.
+    return_factor : bool, default False
+        Return the factor ``F`` of the similarity matrix (``S = F @ F.T``; cells x number of clusters)
+        instead of the cells x cells matrix ``S``.
 
     Returns
     -------
-    sim_mat: the similarity matrix (or its factor if return_factor=True)
-
-    '''
+    numpy.ndarray
+        Similarity matrix, or its factor if ``return_factor=True``. Sets ``adata.obs[pathway + '_rec']``,
+        ``adata.obs[pathway + '_lig']`` (and ``'_tar'``) with the per-cell averages (not neighbour-averaged) and
+        ``adata.uns['pathways'][pathway]['uses_targets']``.
+    """
     if human is not None:
         _resolve_species(human=human)  # deprecation warning only
 
@@ -216,25 +246,50 @@ def consensus_clustering(adata,
                          target=False,
                          neighbor_average=False
                          ):
-    '''Computes consensus clustering based on ligand/receptor (and optionally downstream gene) expression of a pathway
-    Results are stored in adata.obs
+    r"""Assign every cell to a communication mode of a pathway.
+
+    Cells are clustered with k-means on their receptor and ligand expression (and downstream-gene
+    expression with ``target=True``) into the optimal number of modes found by
+    ``spectral_analysis_opt``, or ``n_cluster`` modes. The distribution of cell types across modes and
+    the heterogeneity score of each cell type are then computed.
 
     Parameters
     ----------
-    adata: anndata object with gene counts
-    pathway: pathway of interest
-    n_cluster: number of clusters; can be user input, default is optimal number found by symmetric non-negative matrix factorization
-    seed: seed for random umber generator (default=100)
-    target: if True, also cluster on the expression of the pathway's downstream genes (adata.obs[pathway + '_tar'],
-        computed by single_path_sim with target=True) (default=False)
-    neighbor_average: if True, average expression over each cell's neighbours (adata.obsp['distances']) before
-        clustering, as done for the similarity matrix in single_path_sim (default=False)
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.single_path_sim` and ``spectral_analysis_opt``.
+    pathway : str
+        Pathway of interest.
+    annotations : str
+        Key in ``adata.obs`` with cell-type annotations.
+    n_cluster : int or 'optimal', default 'optimal'
+        Number of modes; ``'optimal'`` uses ``adata.uns['SymNMF'][pathway]['optimal']``.
+    order : list, optional
+        Deprecated, has no effect (cell types are stored in sorted order).
+    seed : int, default 100
+        Random seed of k-means.
+    target : bool, default False
+        Also cluster on ``adata.obs[pathway + '_tar']``.
+    neighbor_average : bool, default False
+        Average expression over each cell's neighbours before clustering.
 
     Returns
     -------
     None
+        Sets the following fields:
 
-    '''
+        - ``adata.obs[pathway + '_modes']``: communication mode of each cell (integers ``0, 1, ...``).
+        - ``adata.uns['fraction_mat'][pathway]``: number of cells per mode (rows) and cell type (columns).
+        - ``adata.uns['pathways'][pathway]``: ``'modes'`` and ``'cell_types'`` (row and column labels of the
+          fraction matrix), ``'cci_heterogeneity'`` (score per cell type, see Notes) and ``'neighbor_average'``.
+
+    Notes
+    -----
+    The heterogeneity score of a cell type compares its distribution over modes, :math:`\rho_i`, with that of
+    all cells, :math:`m_i`. It is :math:`1 - \frac{1}{M}\sum_i |\rho_i - m_i| / s_i`, with :math:`M` modes and
+    :math:`s_i = 1 - m_i` if :math:`\rho_i > m_i`, else :math:`s_i = m_i`. It is close to 1 when the cell
+    type contains the modes in the same proportions as the whole population (heterogeneous) and close to 0
+    when its composition deviates maximally.
+    """
     # get average ligand, receptor expression
     rec_exp, lig_exp = np.asarray(adata.obs[pathway + '_rec']), np.asarray(adata.obs[pathway + '_lig'])
     if target:
@@ -272,28 +327,70 @@ def consensus_clustering(adata,
 def all_path_sim(adata, annotations, nsim=5, kmin=3, kmax=6, target=False, species=None, moments=False,
                  neighbor_average=False, method='expression', pathways_to_use=10, top_target=10, order=None, seed=100, print_info=False,
                  consensus_neighbor_average=False, human=None):
-    '''Loop the clustering based on cell-cell communication to all pathways identified in the dataset
+    r"""Identify the communication modes of several pathways.
+
+    Runs the complete mode analysis for each pathway: similarity matrix (:func:`scrich.tl.single_path_sim`), optimal
+    number of modes (``spectral_analysis_opt``) and assignment of cells to modes
+    (:func:`scrich.tl.consensus_clustering`), including the heterogeneity score of every cell type.
 
     Parameters
     ----------
-    adata: anndata object with gene counts
-    annotations: adata.obs key with cell type annotations
-    target: if True, also use the expression of each pathway's downstream genes (selected with import_database)
-        both for the similarity matrix and for the final consensus clustering of modes (default=False)
-    top_target: number of downstream genes per pathway used when target=True (default=10)
-    species: 'human' (default) or 'mouse'
-    human: deprecated, use species
-    neighbor_average: if True, average expression over each cell's neighbours for the similarity matrix
-    consensus_neighbor_average: if True, also use neighbour-averaged expression for the final consensus clustering
-        of modes (default=False, i.e. modes are assigned from unsmoothed expression as in v0.1.0)
-    order: deprecated, has no effect
-    seed: random seed for the consensus clustering
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.pathways_overview`.
+    annotations : str
+        Key in ``adata.obs`` with cell-type annotations.
+    nsim : int, default 5
+        Number of k-means runs for each number of clusters in the similarity matrix.
+    kmin : int, default 3
+        Minimum number of clusters used to build the similarity matrix.
+    kmax : int, default 6
+        Maximum number of clusters used to build the similarity matrix.
+    target : bool, default False
+        Also use the pathways' downstream genes (selected with :func:`scrich.tl.import_database`, which is
+        called automatically) for the similarity matrix and the mode assignment.
+    species : {'human', 'mouse'}, default 'human'
+        Species of the databases.
+    moments : bool, default False
+        Use ``adata.layers['Mu'] + adata.layers['Ms']`` instead of ``adata.X``.
+    neighbor_average : bool, default False
+        Average expression over each cell's neighbours for the similarity matrix.
+    method : {'expression', 'number'}, default 'expression'
+        How to rank pathways when ``pathways_to_use`` is a number (see :func:`scrich.tl.select_pathways`).
+    pathways_to_use : int or list of str, default 10
+        Number of top pathways to analyse, or the list of pathways.
+    top_target : int, default 10
+        Number of downstream genes per pathway with ``target=True``.
+    order : list, optional
+        Deprecated, has no effect.
+    seed : int, default 100
+        Random seed of the final k-means clustering.
+    print_info : bool, default False
+        Report details for each pathway.
+    consensus_neighbor_average : bool, default False
+        Also use neighbour-averaged expression for the final mode assignment (by default only the similarity
+        matrix uses it, as in scRICH 0.1).
+    human : bool, optional
+        Deprecated, use ``species``.
 
     Returns
     -------
     None
+        Sets ``adata.uns['selected_pathways']`` and, for every pathway, the fields described in
+        :func:`scrich.tl.single_path_sim`, ``spectral_analysis_opt`` and :func:`scrich.tl.consensus_clustering`
+        (``adata.obs[pathway + '_modes']``, ``adata.uns['fraction_mat']``, ``adata.uns['SymNMF']``, ...).
 
-    '''
+    See Also
+    --------
+    scrich.tl.permutation_testing : Test which cell types are significantly heterogeneous.
+    scrich.pl.mode_violin : Receptor and ligand expression in each mode.
+
+    Examples
+    --------
+    >>> import scrich as ri
+    >>> ri.tl.pathways_overview(adata, species="mouse")  # doctest: +SKIP
+    >>> ri.tl.all_path_sim(adata, "celltype", pathways_to_use=10, species="mouse",
+    ...                    neighbor_average=True)  # doctest: +SKIP
+    """
     species = _resolve_species(species, human)
     if isinstance(pathways_to_use, int):
         select_pathways(adata, species=species, method=method, n=pathways_to_use)

@@ -10,18 +10,20 @@ import pandas as pd
 def list_intersect(geneset,
                    lst
                    ):
-    '''selects the elements in common between the two lists
+    r"""Unique elements of ``lst`` that are also in ``geneset``.
 
     Parameters
     ----------
-    geneset: list of genes in dataset
-    lst: list of genes of interested
+    geneset : list of str
+        Genes in the dataset.
+    lst : list of str
+        Genes of interest.
 
     Returns
     -------
-    gene_list: list of common genes between the two lists
-
-    '''
+    list of str
+        Common genes.
+    """
     if not (isinstance(geneset, list) and isinstance(lst, list)):
         raise TypeError('geneset and lst must be Python lists')
 
@@ -48,19 +50,20 @@ def get_list(df, pathway):
 
 
 def extract_neighbors(adata, key='distances'):
-    '''
-    return the list of cell neighbors for all cells in adata
+    r"""Neighbours of every cell from a neighbour graph.
 
     Parameters
     ----------
-    adata: anndata object of gene counts
-    key: distance metric (Please choose between key=='distances' or key=='connectivities')
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.obsp[key]``.
+    key : {'distances', 'connectivities'}, default 'distances'
+        Neighbour graph.
 
     Returns
     -------
-    neighbors: the list of neighbors per cell
-
-    '''
+    list of numpy.ndarray
+        Indices of the neighbours of each cell.
+    """
     if key not in ('distances', 'connectivities'):
         raise ValueError(f"key must be 'distances' or 'connectivities', got {key!r}")
     dist = adata.obsp[key]
@@ -69,19 +72,20 @@ def extract_neighbors(adata, key='distances'):
 
 
 def neighbor_avg(v, neigh):
-    '''
-    Compute average of array v over cell neighbors
+    r"""Average of a per-cell value over each cell's neighbours.
 
     Parameters
     ----------
-    v: array to be averaged
-    neigh: list of neighbors
+    v : numpy.ndarray
+        Value of every cell.
+    neigh : list of numpy.ndarray
+        Neighbours of every cell (:func:`extract_neighbors`).
 
     Returns
     -------
-    v_avg: the averge value
-
-    '''
+    numpy.ndarray
+        Neighbour average of every cell.
+    """
     v_avg = np.zeros(v.size)
     for i in range(v_avg.size):
         neigh_v = v[neigh[i]]
@@ -90,7 +94,7 @@ def neighbor_avg(v, neigh):
 
 
 def _mode_order(col):
-    '''Modes of a pathway in a stable order: category order for renamed modes, otherwise sorted.'''
+    """Modes of a pathway in a stable order: category order for renamed modes, otherwise sorted."""
     if isinstance(col.dtype, pd.CategoricalDtype):
         return [c for c in col.cat.categories if (col == c).any()]
     return sorted(set(np.asarray(col)))
@@ -136,6 +140,22 @@ def _quiet_pandas():
 
 
 def compute_sign_prob(adata, pathway, key='distances'):
+    r"""Fraction of each cell's neighbours in each communication mode of a pathway.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.obs[pathway + '_modes']``.
+    pathway : str
+        Pathway of interest.
+    key : {'distances', 'connectivities'}, default 'distances'
+        Neighbour graph in ``adata.obsp``.
+
+    Returns
+    -------
+    tuple
+        Modes (in stored order) and a cells x modes array of fractions.
+    """
     neighbors = extract_neighbors(adata, key=key)
     modes = np.asarray(adata.obs[pathway + '_modes'])
 
@@ -150,6 +170,20 @@ def compute_sign_prob(adata, pathway, key='distances'):
 
 
 def compute_pattern_prob(adata, key='distances'):
+    r"""Fraction of each cell's neighbours in each signaling pattern.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix with ``adata.obs['sign_pattern']``.
+    key : {'distances', 'connectivities'}, default 'distances'
+        Neighbour graph in ``adata.obsp``.
+
+    Returns
+    -------
+    tuple
+        Patterns (in numerical order) and a cells x patterns array of fractions.
+    """
     neighbors = extract_neighbors(adata, key=key)
     modes = np.asarray(adata.obs['sign_pattern'])
 

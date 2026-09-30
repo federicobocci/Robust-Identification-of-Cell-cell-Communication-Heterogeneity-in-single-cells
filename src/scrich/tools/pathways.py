@@ -15,24 +15,40 @@ def find_genes(adata,
                print_info=True,
                human=None
                ):
-    '''Identify receptors and ligands of a given pathway that are detected in adata
-    Identified receptors and ligands for pathway are stored in adata.uns['pathways']
+    r"""Find the receptors and ligands of a pathway that are detected in the data.
+
+    The pathway's genes are taken from the bundled CellChatDB tables
+    (:func:`scrich.db.load_pathway_genes`); receptor complexes such as ``TGFBR1_TGFBR2`` are split into
+    their subunits. A gene counts as detected if it is in ``adata.var_names``.
 
     Parameters
     ----------
-    adata: anndata object of gene counts
-    pathway: pathway of interest
-    species: 'human' (default) or 'mouse'
-    save_genes: if True, save identified genes in adata.uns['pathways'] (default=True)
-    return_lists: if True, returns lists of common receptors and ligands (default=False)
-    print_info: if True, print information (default=True)
-    human: deprecated, use species
+    adata : anndata.AnnData
+        Annotated data matrix (cells x genes).
+    pathway : str
+        Name of the CCC pathway, e.g. ``'TGFb'`` or ``'IGF'``.
+    species : {'human', 'mouse'}, default 'human'
+        Species of the ligand-receptor database.
+    save_genes : bool, default True
+        Store the detected genes in ``adata.uns['pathways'][pathway]``.
+    return_lists : bool, default False
+        Return the detected receptors and ligands.
+    print_info : bool, default True
+        Report the detected genes (see :func:`scrich.set_verbosity`).
+    human : bool, optional
+        Deprecated, use ``species``.
 
     Returns
     -------
-    None
+    tuple of list or None
+        ``(receptors, ligands)`` if ``return_lists=True``, otherwise ``None``.
+        With ``save_genes=True`` sets ``adata.uns['pathways'][pathway] = {'receptors': [...], 'ligands': [...]}``.
 
-    '''
+    Examples
+    --------
+    >>> import scrich as ri
+    >>> ri.tl.find_genes(adata, "IGF", species="mouse")  # doctest: +SKIP
+    """
     species = _resolve_species(species, human)
     lig = db.load_pathway_genes('ligand', species=species)
     rec = db.load_pathway_genes('receptor', species=species)
@@ -61,21 +77,44 @@ def find_genes(adata,
 
 
 def pathways_overview(adata, species=None, moments=False, human=None):
-    '''Overview of pathways in the database with both Receptors and Ligands detected in adata
-    Information on identified pathways is printed
+    r"""Scan all pathways of the database for detected receptors and ligands.
+
+    For every pathway with at least one receptor and one ligand detected in the data, records the number
+    of detected genes and their average expression. This is usually the first step of a scRICH analysis;
+    the pathways to analyse are then chosen with :func:`scrich.tl.select_pathways` (called by
+    :func:`scrich.tl.all_path_sim`) or by hand.
 
     Parameters
     ----------
-    adata: anndata object of gene counts
-    species: 'human' (default) or 'mouse'
-    moments: if True, use the imputed layers Mu + Ms for expression, otherwise adata.X
-    human: deprecated, use species
+    adata : anndata.AnnData
+        Annotated data matrix (cells x genes), with log-normalized expression in ``adata.X``.
+    species : {'human', 'mouse'}, default 'human'
+        Species of the ligand-receptor database.
+    moments : bool, default False
+        Use the imputed layers ``adata.layers['Mu'] + adata.layers['Ms']`` (e.g. from
+        :func:`scvelo.pp.moments`) instead of ``adata.X``.
+    human : bool, optional
+        Deprecated, use ``species``.
 
     Returns
     -------
     None
+        Sets the following fields:
 
-    '''
+        - ``adata.uns['pathways'][pathway]``: detected ``'receptors'`` and ``'ligands'`` of each pathway.
+        - ``adata.uns['paths_overview']``: ``{'gene_number': {pathway: [n_receptors, n_ligands]},
+          'gene_expression': {pathway: [mean receptor expression, mean ligand expression]}}``.
+
+    See Also
+    --------
+    scrich.pl.pathways_overview : Plot the detected pathways.
+
+    Examples
+    --------
+    >>> import scrich as ri
+    >>> ri.tl.pathways_overview(adata, species="mouse")  # doctest: +SKIP
+    >>> ri.pl.pathways_overview(adata, top=10)  # doctest: +SKIP
+    """
     species = _resolve_species(species, human)
     lig = db.load_pathway_genes('ligand', species=species)
     rec = db.load_pathway_genes('receptor', species=species)
@@ -110,21 +149,29 @@ def pathways_overview(adata, species=None, moments=False, human=None):
 
 
 def select_pathways(adata, species=None, method='expression', n=10, human=None):
-    '''Select the top CCC pathways on which to run the scRICH analysis.
-    The list of selected pathways is stored in adata.uns['selected_pathways']
+    r"""Select the top pathways for the analysis.
+
+    Pathways are ranked using the summary computed by :func:`scrich.tl.pathways_overview`.
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    species: unused, kept for backward compatibility (pathways come from adata.uns['paths_overview'])
-    method: 'expression' (total gene expression of rec+lig genes) of 'number' (number of detected rec+lig genes)
-    n: number of pathway to select
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.pathways_overview`.
+    species : {'human', 'mouse'}, optional
+        Not used; kept for backward compatibility.
+    method : {'expression', 'number'}, default 'expression'
+        Rank pathways by the average expression of their receptors and ligands (``'expression'``) or by the
+        number of detected receptors and ligands (``'number'``).
+    n : int, default 10
+        Number of pathways to select.
+    human : bool, optional
+        Deprecated, use ``species``.
 
     Returns
     -------
     None
-
-    '''
+        Sets ``adata.uns['selected_pathways']``: list of the ``n`` top pathways.
+    """
     if human is not None:
         _resolve_species(species, human)  # deprecation warning only
     if 'paths_overview' not in adata.uns:

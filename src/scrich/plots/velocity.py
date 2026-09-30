@@ -15,6 +15,18 @@ _sns = LazyModule("seaborn", extra="velocity")
 
 
 def kdeplot(*args, **kwargs):
+    r""":func:`seaborn.kdeplot`, imported only when needed (seaborn is an optional dependency).
+
+    Parameters
+    ----------
+    *args, **kwargs
+        Passed to :func:`seaborn.kdeplot`.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+        The axes.
+    """
     return _sns.kdeplot(*args, **kwargs)
 
 
@@ -22,16 +34,42 @@ def kdeplot(*args, **kwargs):
 def plot_maps(adata, pathway, key='distances', basis='umap', panel_height = 4, panel_length = 4,
               linewidth=0.5, arrow_style='->', mode_to_plot='all', fontsize=7,
               showfig=False, savefig=True, figname='velocity_plot', format='png'):
-    '''Density of each communication mode on the embedding, overlaid on the RNA velocity stream.
+    r"""Local density of each communication mode of a pathway on the embedding, over the RNA velocity stream.
+
+    For every cell, the fraction of its neighbours in each mode is computed; one panel per mode shows this
+    fraction as a density.
 
     Parameters
     ----------
-    adata: scRNA-seq data object with RNA velocity (scvelo)
-    pathway: pathway of interest
-    key: neighbour graph used to compute the local fraction of each mode ('distances' or 'connectivities')
-    basis: embedding in adata.obsm['X_' + basis] (default='umap')
-    mode_to_plot: 'all' (one panel per mode) or the name of a single mode
-    '''
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`, with RNA velocity
+        (:func:`scvelo.tl.velocity_graph`).
+    pathway : str
+        Pathway of interest.
+    key : {'distances', 'connectivities'}, default 'distances'
+        Neighbour graph in ``adata.obsp`` used for the local fractions.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+    panel_height, panel_length : float, default 4
+        Size of each panel.
+    linewidth : float, default 0.5
+        Line width of the velocity stream.
+    arrow_style : str, default '->'
+        Arrow style of the velocity stream.
+    mode_to_plot : str, default 'all'
+        ``'all'`` (one panel per mode) or a single mode.
+    fontsize : int, default 7
+        Font size of the titles.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or list of matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+
+    Notes
+    -----
+    Requires ``scvelo`` and ``seaborn``: ``pip install 'scrich[velocity]'``.
+    """
     mode_name, sign_prob = compute_sign_prob(adata, pathway, key=key)
 
     coords = np.asarray(adata.obsm['X_'+basis])
@@ -61,6 +99,32 @@ def plot_maps(adata, pathway, key='distances', basis='umap', panel_height = 4, p
 @plot_function()
 def pattern_plot(adata, key='distances', basis='umap', pattern=0, colormap='Reds', ax=None,
                  showfig=False, savefig=True, figname='pattern_plot.png', format='png'):
+    r"""Local density of one signaling pattern on the embedding, over the RNA velocity stream.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.find_sign_patterns`, with RNA velocity.
+    key : {'distances', 'connectivities'}, default 'distances'
+        Neighbour graph in ``adata.obsp`` used for the local fractions.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+    pattern : int, default 0
+        Position of the pattern (patterns are in numerical order).
+    colormap : str, default 'Reds'
+        Colormap of the density.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created by default.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+
+    Notes
+    -----
+    Requires ``scvelo`` and ``seaborn``: ``pip install 'scrich[velocity]'``.
+    """
     mode_name, sign_prob = compute_pattern_prob(adata, key=key)
     n_modes = sign_prob.shape[1]
 
@@ -83,6 +147,22 @@ def pattern_plot(adata, key='distances', basis='umap', pattern=0, colormap='Reds
 
 
 def moving_avg(pst, y, npoints):
+    r"""Average of ``y`` in ``npoints`` equal bins of pseudotime.
+
+    Parameters
+    ----------
+    pst : numpy.ndarray
+        Pseudotime of every cell (between 0 and 1).
+    y : numpy.ndarray
+        Value of every cell.
+    npoints : int
+        Number of bins.
+
+    Returns
+    -------
+    numpy.ndarray
+        Mean of ``y`` in each bin.
+    """
     bins = np.linspace(0, 1, npoints + 1)
     y_avg = np.zeros(bins.size - 1)
     for i in range(bins.size - 1):
@@ -96,6 +176,36 @@ def moving_avg(pst, y, npoints):
 def state_dist_pst(adata, key='clusters', pst_key='velocity_pseudotime', order=None, alp=0.5, colors='b',
                    title='State distribution', xlab='pseudotime', ax=None, figsize=(4, 2), showfig=False, savefig=True,
                    figname='state_dist_pst.pdf', format='pdf', dpi=300):
+    r"""Distribution of every cell type along pseudotime (violin plots).
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix with a pseudotime in ``adata.obs[pst_key]``.
+    key : str, default 'clusters'
+        Key in ``adata.obs`` with cell-type annotations.
+    pst_key : str, default 'velocity_pseudotime'
+        Key in ``adata.obs`` with the pseudotime.
+    order : list, optional
+        Cell types to show and their order; by default all, sorted.
+    alp : float, default 0.5
+        Transparency of the violins.
+    colors : str or list of str, default 'b'
+        One colour, or one colour per cell type.
+    title : str, default 'State distribution'
+        Plot title.
+    xlab : str, default 'pseudotime'
+        Label of the x-axis.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created by default.
+    figsize : tuple, default (4, 2)
+        Figure size.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+    """
     pst = np.asarray(adata.obs[pst_key])
     clusters = np.asarray(adata.obs[key])
 
@@ -139,6 +249,37 @@ def state_dist_pst(adata, key='clusters', pst_key='velocity_pseudotime', order=N
 @plot_function()
 def sign_prob_plot(adata, pathway, key='velocity_pseudotime', legend_font=10, title=None, npoints=10, xlab='pseudotime', ax=None,
                    figsize=(4, 2), showfig=False, savefig=True, figname='pst.pdf', format='pdf', dpi=300, return_curve=False):
+    r"""Fraction of neighbouring cells in each communication mode of a pathway along pseudotime.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`, with a pseudotime in ``adata.obs[key]``.
+    pathway : str
+        Pathway of interest.
+    key : str, default 'velocity_pseudotime'
+        Key in ``adata.obs`` with the pseudotime (values between 0 and 1).
+    legend_font : int, default 10
+        Legend font size.
+    title : str, optional
+        Plot title.
+    npoints : int, default 10
+        Number of pseudotime bins.
+    xlab : str, default 'pseudotime'
+        Label of the x-axis.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created by default.
+    figsize : tuple, default (4, 2)
+        Figure size.
+    return_curve : bool, default False
+        Return the curves instead of the axes.
+
+    Returns
+    -------
+    dict or matplotlib.axes.Axes or None
+        With ``return_curve=True``: ``{'x': bin centres, <mode>: values}``. Otherwise the axes if
+        ``show=False``, else ``None``.
+    """
     pst = np.asarray(adata.obs[key])
 
     new_ax = ax is None
@@ -178,6 +319,36 @@ def sign_prob_plot(adata, pathway, key='velocity_pseudotime', legend_font=10, ti
 @plot_function()
 def pattern_prob_plot(adata, pattern, key='velocity_pseudotime', title=None, npoints=10, xlab='pseudotime', ax=None,
                    figsize=(4, 2), showfig=False, savefig=True, figname='pst.pdf', format='pdf', dpi=300, return_curve=False):
+    r"""Fraction of neighbouring cells in one signaling pattern along pseudotime.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.find_sign_patterns`, with a pseudotime in
+        ``adata.obs[key]``.
+    pattern : int
+        Position of the pattern (patterns are in numerical order).
+    key : str, default 'velocity_pseudotime'
+        Key in ``adata.obs`` with the pseudotime (values between 0 and 1).
+    title : str or bool, optional
+        Plot title (``True`` uses ``'pattern <n>'``).
+    npoints : int, default 10
+        Number of pseudotime bins.
+    xlab : str, default 'pseudotime'
+        Label of the x-axis.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created by default.
+    figsize : tuple, default (4, 2)
+        Figure size.
+    return_curve : bool, default False
+        Return the curve instead of the axes.
+
+    Returns
+    -------
+    dict or matplotlib.axes.Axes or None
+        With ``return_curve=True``: ``{'x': bin centres, 'pattern <n>': values}``. Otherwise the axes if
+        ``show=False``, else ``None``.
+    """
     pst = np.asarray(adata.obs[key])
 
     new_ax = ax is None
@@ -215,6 +386,32 @@ def pattern_prob_plot(adata, pattern, key='velocity_pseudotime', title=None, npo
 @plot_function()
 def expr_map(adata, pathway, key='distances', basis='umap',
              figsize=(12, 4), showfig=False, savefig=True, figname='expr_map.png', format='png'):
+    r"""Local receptor, ligand (and downstream-gene) expression of a pathway over the RNA velocity stream.
+
+    Expression is averaged over each cell's neighbours and shown as a density on the embedding.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.all_path_sim`, with RNA velocity.
+    pathway : str
+        Pathway of interest.
+    key : {'distances', 'connectivities'}, default 'distances'
+        Neighbour graph in ``adata.obsp``.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+    figsize : tuple, default (12, 4)
+        Figure size (with downstream genes; two thirds of the width without).
+
+    Returns
+    -------
+    list of matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+
+    Notes
+    -----
+    Requires ``scvelo`` and ``seaborn``: ``pip install 'scrich[velocity]'``.
+    """
     neighbors = extract_neighbors(adata, key=key)
 
     coords = np.asarray(adata.obsm['X_' + basis])
@@ -260,6 +457,37 @@ def expr_map(adata, pathway, key='distances', basis='umap',
 
 
 def plot_row(adata, x, y, neighbors, weight, genelist, index, top, nrow, cmap, fontsize=10, basis='umap'):
+    r"""One row of :func:`scrich.pl.top_players_map`: the ``top`` most expressed genes of a list.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix.
+    x, y : numpy.ndarray
+        Embedding coordinates.
+    neighbors : list of numpy.ndarray
+        Neighbours of every cell.
+    weight : numpy.ndarray
+        Average expression of every gene in ``genelist``.
+    genelist : numpy.ndarray
+        Genes.
+    index : int
+        Row of the panel grid.
+    top : int
+        Number of genes (columns).
+    nrow : int
+        Number of rows of the panel grid.
+    cmap : str
+        Colormap.
+    fontsize : int, default 10
+        Font size of the titles.
+    basis : str, default 'umap'
+        Embedding for the velocity stream.
+
+    Returns
+    -------
+    None
+    """
     ind = np.flip(np.argsort(weight))
     for i in range(min(top, ind.size)):
         ax = plt.subplot2grid((nrow, top), (index, i), rowspan=1, colspan=1)
@@ -276,6 +504,35 @@ def plot_row(adata, x, y, neighbors, weight, genelist, index, top, nrow, cmap, f
 @plot_function()
 def top_players_map(adata, pathway, key='distances', top=3, fontsize=10, basis='umap',
                     panel_height=3, panel_length=3, showfig=False, savefig=True, figname='expr_map.png', format='png'):
+    r"""Local expression of the top ligands, receptors (and downstream genes) of a pathway over RNA velocity.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.pathways_overview`, with RNA velocity; downstream genes
+        are shown if ``adata.uns['TF']`` has the pathway (:func:`scrich.tl.import_database`).
+    pathway : str
+        Pathway of interest.
+    key : {'distances', 'connectivities'}, default 'distances'
+        Neighbour graph in ``adata.obsp``.
+    top : int, default 3
+        Number of genes of each kind.
+    fontsize : int, default 10
+        Font size of the titles.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+    panel_height, panel_length : float, default 3
+        Size of each panel.
+
+    Returns
+    -------
+    list of matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+
+    Notes
+    -----
+    Requires ``scvelo`` and ``seaborn``: ``pip install 'scrich[velocity]'``.
+    """
     neighbors = extract_neighbors(adata, key=key)
 
     coords = np.asarray(adata.obsm['X_' + basis])

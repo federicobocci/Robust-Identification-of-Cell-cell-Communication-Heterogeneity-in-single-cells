@@ -17,20 +17,28 @@ scv = LazyModule("scvelo", extra="velocity")
 
 
 def chord_diagram(adata, p, eps=0.01, show=None):
-    '''Generate a chord diagram of the CCC pathway p using the d3blocks library (interactive HTML).
+    r"""Interactive chord diagram of the CCC matrix of a pathway (requires ``d3blocks``).
 
     Parameters
     ----------
-    adata: scRNA-seq data object
-    p: pathway of interest
-    eps: threshold to select interactions in the CCC matrix
-    show: open the diagram; None follows scrich.settings.autoshow
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.compute_ccc_matrix`.
+    p : str
+        Pathway of interest.
+    eps : float, default 0.01
+        Interactions below this value are not shown.
+    show : bool or None, default None
+        Open the diagram; ``None`` follows :attr:`scrich.settings.autoshow`.
 
     Returns
     -------
-    The d3blocks object (e.g. to save it: ``d3.chord(..., filepath=...)`` / see the d3blocks documentation)
+    d3blocks.D3Blocks
+        The d3blocks object (see the d3blocks documentation to save it as HTML).
 
-    '''
+    Notes
+    -----
+    Install the optional dependency with ``pip install 'scrich[chord]'``.
+    """
     states, mat = adata.uns['ccc_mat'][p]['states'], adata.uns['ccc_mat'][p]['mat']
 
     # transform CCC mat to pandas dataframe
@@ -51,6 +59,22 @@ def chord_diagram(adata, p, eps=0.01, show=None):
 
 
 def enforce_spacing(x, y, dx, thr):
+    r"""Placeholder for spacing overlapping labels (currently not used).
+
+    Parameters
+    ----------
+    x, y : numpy.ndarray
+        Label coordinates.
+    dx : float
+        Horizontal spacing.
+    thr : float
+        Minimum distance.
+
+    Returns
+    -------
+    tuple
+        New coordinates and number of changes.
+    """
     x_new, y_new = x.copy(), y.copy()
     dist_count = 0
     for i in range(x.size):
@@ -72,6 +96,25 @@ def enforce_spacing(x, y, dx, thr):
 
 def draw_self_loop(ax, center, radius, facecolor='#2693de', edgecolor='#000000', theta1=-30, theta2=180):
     # Add the ring
+    r"""Draw a circular arrow for self-interactions (currently not used).
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes to draw on.
+    center : tuple
+        Centre of the loop.
+    radius : float
+        Loop radius.
+    facecolor, edgecolor : str
+        Colours of the arrow.
+    theta1, theta2 : float
+        Start and end angles (degrees).
+
+    Returns
+    -------
+    None
+    """
     rwidth = 0.02
     ring = patches.Wedge(center, radius, theta1, theta2, width=rwidth)
     # Triangle edges
@@ -94,6 +137,49 @@ def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, up
                        update_horiz_align=None, update_vert_align=None, linewidth=0.25, arrow_style='->',
                        single_source=None, single_target=None, figsize=(4, 4), strip_text=False,
                        basis='umap', ax=None, showfig=False, savefig=True, figname='coarse_grained.png', format='png'):
+    r"""CCC matrix of a pathway drawn on the embedding, over the RNA velocity stream (requires ``scvelo``).
+
+    Each cell state (cell type and communication mode, as in :func:`scrich.tl.compute_ccc_matrix`) is placed
+    at the mean position of its cells; arrows from sender to receiver states have a width proportional to the
+    interaction.
+
+    Parameters
+    ----------
+    adata : anndata.AnnData
+        Annotated data matrix after :func:`scrich.tl.compute_ccc_matrix`, with RNA velocity
+        (:func:`scvelo.tl.velocity_graph`).
+    pathway : str
+        Pathway of interest.
+    key : str, default 'clusters'
+        Key in ``adata.obs`` with cell-type annotations (the one used for the CCC matrix).
+    thr : float, default 0.01
+        Interactions below this value are not drawn.
+    fontsize : int, default 10
+        Font size of the state labels.
+    update_connection : dict, optional
+        ``'start: <state>; end: <state>'`` -> matplotlib ``connectionstyle`` for individual arrows.
+    update_horiz_align, update_vert_align : dict, optional
+        State -> horizontal / vertical alignment of its label.
+    linewidth : float, default 0.25
+        Line width of the velocity stream.
+    arrow_style : str, default '->'
+        Arrow style of the velocity stream.
+    single_source, single_target : str, optional
+        Draw only the interactions from / to this state.
+    figsize : tuple, default (4, 4)
+        Figure size.
+    strip_text : bool, default False
+        Hide the state labels.
+    basis : str, default 'umap'
+        Embedding in ``adata.obsm['X_' + basis]``.
+    ax : matplotlib.axes.Axes, optional
+        Axes to draw on; a new figure is created by default.
+
+    Returns
+    -------
+    matplotlib.axes.Axes or None
+        The axes if ``show=False``, otherwise ``None``.
+    """
     mat = adata.uns['ccc_mat'][pathway]['mat']
     states = sorted(list(set(adata.obs[key])))
     modes = sorted(set(list(adata.obs[pathway + '_modes'])))

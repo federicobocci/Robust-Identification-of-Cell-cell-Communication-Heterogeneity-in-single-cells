@@ -26,3 +26,9 @@ datasets/
 
 # OS
 .DS_Store
+
+# Documentation build and files generated/copied at build time
+docs/_build/
+docs/api/generated/
+docs/tutorials/*.ipynb
+docs/_static/scrich_schematic.png
