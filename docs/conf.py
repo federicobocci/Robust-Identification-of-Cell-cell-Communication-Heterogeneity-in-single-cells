@@ -31,7 +31,7 @@ for nb in sorted((ROOT / "tutorials").glob("tutorial-*.ipynb")):
                     for c in content["cells"])
     if not has_title:
         title = nb.stem.split("-", 2)[-1].replace("_", " ").replace("-", " ")
-        content["cells"].insert(0, {"cell_type": "markdown", "metadata": {}, "source": [f"# {title}"]})
+        content["cells"].insert(0, {"cell_type": "markdown", "id": "scrich-title", "metadata": {}, "source": [f"# {title}"]})
     (_tut_dir / f"{slug}.ipynb").write_text(json.dumps(content))
 (HERE / "_static").mkdir(exist_ok=True)
 shutil.copyfile(ROOT / "misc" / "GA.png", HERE / "_static" / "scrich_schematic.png")
