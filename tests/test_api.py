@@ -1,3 +1,5 @@
+import pytest
+
 import scrich as ri
 
 
@@ -12,3 +14,17 @@ def test_public_api_is_importable():
         assert callable(getattr(ri.pl, name)), name
     for name in ["load_pathway_genes", "load_exfinder", "fetch_all", "data_dir", "set_data_dir"]:
         assert callable(getattr(ri.db, name)), name
+
+
+def test_optional_dependencies_are_lazy():
+    """import scrich must work without the optional extras; using them gives an install hint."""
+    import importlib.util
+
+    for mod, extra, call in [
+        ("plotly", "alluvial", lambda: ri.plots.flows.go.Figure),
+        ("scvelo", "velocity", lambda: ri.plots.velocity.scv.pl),
+        ("d3blocks", "chord", lambda: ri.plots.ccc._d3blocks.D3Blocks),
+    ]:
+        if importlib.util.find_spec(mod) is None:
+            with pytest.raises(ImportError, match=f"scrich\\[{extra}\\]"):
+                call()

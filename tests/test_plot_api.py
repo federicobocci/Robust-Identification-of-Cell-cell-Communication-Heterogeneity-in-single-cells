@@ -3,10 +3,8 @@ handles the deprecated savefig/showfig/figname arguments, and follows scrich.set
 
 import warnings
 
-import anndata as ad
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import pytest
 import scipy.sparse as sp
 

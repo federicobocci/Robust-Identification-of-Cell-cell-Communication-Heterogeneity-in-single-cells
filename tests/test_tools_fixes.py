@@ -124,7 +124,7 @@ def test_consensus_clustering_neighbor_average(adata_mouse):
     ri.tl.pathways_overview(adata_mouse, species="mouse")
     p = list(adata_mouse.uns["pathways"])[0]
     ri.tl.single_path_sim(adata_mouse, p, print_info=False)
-    rec_before = np.asarray(adata_mouse.obs[p + "_rec"]).copy()
+    np.asarray(adata_mouse.obs[p + "_rec"]).copy()
     # smoothed ligand signal with a clear split that dominates; unsmoothed it is noise around it
     neigh = extract_neighbors(adata_mouse)
     rng = np.random.default_rng(0)

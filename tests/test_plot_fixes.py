@@ -42,12 +42,14 @@ def test_no_saving_by_default_for_former_string_defaults(analysed, tmp_path, mon
     ri.pl.redundancy(analysed)
     ri.pl.pathway_hierarchy(analysed)
     p = analysed.uns["selected_pathways"][0]
-    ri.pl.alluvial_onepath(analysed, p, "celltype", show=False)
+    if importlib.util.find_spec("plotly") is not None:  # optional dependency
+        ri.pl.alluvial_onepath(analysed, p, "celltype", show=False)
     plt.close("all")
     assert os.listdir(tmp_path) == []
 
 
-@pytest.mark.skipif(importlib.util.find_spec("kaleido") is not None, reason="kaleido installed")
+@pytest.mark.skipif(importlib.util.find_spec("kaleido") is not None or importlib.util.find_spec("plotly") is None,
+                    reason="needs plotly without kaleido")
 def test_alluvial_static_export_needs_kaleido(analysed, tmp_path):
     p = analysed.uns["selected_pathways"][0]
     with pytest.raises(ImportError, match="kaleido"), pytest.warns(FutureWarning):

@@ -64,7 +64,7 @@ def heatmap_one_pathway(adata, pathway, key, order=None, legend_top=False, legen
     frac, lab_set, clst_set = _fraction_matrix(adata, pathway, key, order)
     ntypes, nclst = len(lab_set), len(clst_set)
 
-    fig = plt.figure(figsize=(width, height))
+    plt.figure(figsize=(width, height))
 
     x = np.arange(0.5, ntypes, 1)
     y = np.arange(0.5, nclst, 1)
@@ -87,8 +87,8 @@ def heatmap_one_pathway(adata, pathway, key, order=None, legend_top=False, legen
     if legend_top:
         plt.legend(loc=legend_loc_top, ncol=ncol_top, fontsize=legend_font)
 
-    ax2 = plt.subplot2grid((6, 6), (2, 0), rowspan=4, colspan=4)
-    pt = plt.pcolor(np.transpose(frac) / np.sum(frac), cmap='Reds', vmin=0)
+    plt.subplot2grid((6, 6), (2, 0), rowspan=4, colspan=4)
+    plt.pcolor(np.transpose(frac) / np.sum(frac), cmap='Reds', vmin=0)
     plt.ylabel('Cell Type')
     plt.xlabel('Signaling Mode - ' + pathway)
     plt.xticks(x, [str(m) for m in lab_set])
@@ -355,7 +355,7 @@ def state_heterogeneity_summary(adata, key, order=None, fontsize=10, color='ligh
             het_mat[i][j] = v_het[j]
     avg, std = np.mean(het_mat, axis=0), np.std(het_mat, axis=0)
 
-    if order==None:
+    if order is None:
         ind = np.argsort(avg)
     else:
         ind = [labels.index(o) for o in order]

@@ -54,7 +54,7 @@ def unique(paths):
     """
     unique = []
     for p in paths:
-        if not(p in unique):
+        if p not in unique:
             unique.append(p)
     return unique
 
@@ -266,7 +266,7 @@ def pattern(adata, p, key='cluster', order=None, species=None, ntop=25, marker_c
 
     pattern_adata = adata[adata.obs['sign_pattern'] == str(p)]
 
-    fig = plt.figure(figsize=figsize)
+    plt.figure(figsize=figsize)
 
     ax1 = plt.subplot2grid((7, 15), (0, 0), rowspan=6, colspan=2)
     state_repr(ax1, adata, pattern_adata, key, order, fontsize=fontsize)
@@ -365,7 +365,7 @@ def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, pan
     nrow = int(n / panel_per_row) + 1 if n % panel_per_row > 0 else int(n / panel_per_row)
     ncol = max(n % panel_per_row, panel_per_row)
 
-    fig = plt.figure(figsize=(panel_length*ncol, panel_height*nrow))
+    plt.figure(figsize=(panel_length*ncol, panel_height*nrow))
     colors = discrete_colors(cmap, patterns.size)
 
     for i in range(len(states)):
@@ -378,7 +378,7 @@ def pattern_summary(adata, key, order=None, panel_per_row=4, panel_length=3, pan
         j = int(i / panel_per_row)
         k = i % panel_per_row
 
-        ax = plt.subplot2grid((nrow, ncol), (j, k), rowspan=1, colspan=1)
+        plt.subplot2grid((nrow, ncol), (j, k), rowspan=1, colspan=1)
 
         for j in range(patterns.size):
             plt.bar( np.array([patterns[j]]), [dist[j]], color=colors[j] )

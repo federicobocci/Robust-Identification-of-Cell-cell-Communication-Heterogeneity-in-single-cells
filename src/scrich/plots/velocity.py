@@ -84,7 +84,7 @@ def plot_maps(adata, pathway, key='distances', basis='umap', panel_height = 4, p
             raise ValueError(f"mode_to_plot must be 'all' or one of {list(mode_name)}, got {mode_to_plot!r}")
         selected = [list(mode_name).index(mode_to_plot)]
 
-    fig = plt.figure(figsize=(len(selected) * panel_length, panel_height))
+    plt.figure(figsize=(len(selected) * panel_length, panel_height))
     for j, i in enumerate(selected):
         ax = plt.subplot2grid((1, len(selected)), (0, j), rowspan=1, colspan=1)
         ax.axis('off')
@@ -126,7 +126,7 @@ def pattern_plot(adata, key='distances', basis='umap', pattern=0, colormap='Reds
     Requires ``scvelo`` and ``seaborn``: ``pip install 'scrich[velocity]'``.
     """
     mode_name, sign_prob = compute_pattern_prob(adata, key=key)
-    n_modes = sign_prob.shape[1]
+    sign_prob.shape[1]
 
     coords = np.asarray(adata.obsm['X_' + basis])
     x, y = coords[:, 0], coords[:, 1]
@@ -209,7 +209,7 @@ def state_dist_pst(adata, key='clusters', pst_key='velocity_pseudotime', order=N
     pst = np.asarray(adata.obs[pst_key])
     clusters = np.asarray(adata.obs[key])
 
-    if order == None:
+    if order is None:
         order = sorted(list(set(clusters)))
 
     if isinstance(colors, str):
@@ -359,7 +359,7 @@ def pattern_prob_plot(adata, pattern, key='velocity_pseudotime', title=None, npo
     x = np.linspace(0, 1, npoints)
     result_dict = {'x': x}
 
-    n_modes = sign_prob.shape[1]
+    sign_prob.shape[1]
     color = 'r'
 
     y = moving_avg(pst, sign_prob[:, pattern], npoints)
@@ -554,7 +554,7 @@ def top_players_map(adata, pathway, key='distances', top=3, fontsize=10, basis='
             tar_list = np.asarray(adata.uns['TF'][pathway])
             weight_tar = np.array([_mean_expr(g) for g in tar_list])
 
-    fig = plt.figure(figsize=(panel_length * top, panel_height * 3)) if include_target \
+    plt.figure(figsize=(panel_length * top, panel_height * 3)) if include_target \
         else plt.figure(figsize=(panel_length * top, panel_height * 2))
     nrow = 3 if include_target else 2
 

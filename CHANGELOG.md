@@ -96,6 +96,15 @@
 - Small fixes found while documenting: `pl.single_pathway_heterogeneity(show_perm=False)` had no effect;
   error bars of the summary plots with `orientation='horizontal'` were drawn horizontally.
 
+### Continuous integration (Phase 6)
+- GitHub Actions: `tests.yml` (Linux/macOS x Python 3.10/3.12/3.13 with the optional extras, plus a core-only
+  job; weekly scheduled run), `lint.yml` (pre-commit) and `docs.yml` (Sphinx build with warnings as errors;
+  HTML uploaded as an artifact).
+- `.pre-commit-config.yaml`: ruff (lint + docstrings) and basic file checks; notebooks, `dev/` and `misc/`
+  are excluded. The code base was cleaned to pass (unused variables, `== None`).
+- Tests skip plotly-dependent checks when plotly is not installed, and check that optional dependencies are
+  imported lazily.
+
 ### Fixes
 - `pl.pattern(..., human=True)` read the *receptor* table as ligands; now reads the ligand table.
 - `tl.all_path_sim(..., target=True, human=False)` loaded the human TF database; it now uses mouse.

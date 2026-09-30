@@ -1,5 +1,9 @@
 # scRICH — Robust Identification of Cell-cell Communication Heterogeneity
 
+[![Tests](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/tests.yml/badge.svg)](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/tests.yml)
+[![Lint](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/lint.yml/badge.svg)](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/lint.yml)
+[![Docs](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/docs.yml/badge.svg)](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/docs.yml)
+
 This repository hosts the code of the scRICH method, published in
 [Cell Systems](https://www.cell.com/cell-systems/fulltext/S2405-4712(26)00185-7).
 The method is developed by [Federico Bocci](https://www.ru.nl/en/departments/radboud-institute-for-molecular-life-sciences/computational-cell-fate)
@@ -111,9 +115,14 @@ sphinx-build -b html docs docs/_build/html      # then open docs/_build/html/ind
 
 ```bash
 uv pip install -e ".[dev]"
+pre-commit install                       # run ruff and file checks before each commit
 pytest                                   # fast tests
 SCRICH_DATA_DIR=/path/to/scrich_db_v1 pytest   # also runs the database tests
 ```
+
+Continuous integration (GitHub Actions, `.github/workflows/`) runs on every push and pull request:
+`tests.yml` (Linux and macOS, Python 3.10/3.12/3.13, with and without the optional extras; also weekly),
+`lint.yml` (the pre-commit checks) and `docs.yml` (documentation build, warnings as errors).
 
 ## Contacts
 

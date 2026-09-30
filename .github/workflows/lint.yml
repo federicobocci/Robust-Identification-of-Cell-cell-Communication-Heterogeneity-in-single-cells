@@ -1,0 +1,17 @@
+# Code style and docstring checks (the same as the pre-commit hooks, see .pre-commit-config.yaml).
+name: Lint
+
+on:
+  push:
+    branches: [main, "refactor/**"]
+  pull_request:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - uses: pre-commit/action@v3.0.1

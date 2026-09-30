@@ -1,7 +1,5 @@
 """Seeds, logging, species handling, input checks and the memory-efficient similarity matrix."""
 
-import logging
-import warnings
 
 import anndata as ad
 import numpy as np

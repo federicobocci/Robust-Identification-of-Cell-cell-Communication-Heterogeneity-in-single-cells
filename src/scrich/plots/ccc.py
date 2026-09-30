@@ -188,7 +188,7 @@ def coarse_grained_map(adata, pathway, key='clusters', thr=0.01, fontsize=10, up
 
     cmap = discrete_colors('tab20', len(states))
 
-    x_umap, y_umap = adata.obsm['X_' + basis][:, 0], adata.obsm['X_' + basis][:, 1]
+    x_umap, _y_umap = adata.obsm['X_' + basis][:, 0], adata.obsm['X_' + basis][:, 1]
     x_scale = np.amax(x_umap) - np.amin(x_umap)
     text_separation = 0.02 * x_scale
 

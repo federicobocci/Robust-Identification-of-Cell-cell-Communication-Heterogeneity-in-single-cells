@@ -184,7 +184,7 @@ def mode_violin(adata, key, order=None, cmap=None, legend_font=10,
     # Set2 by default for signaling modes; extended automatically if there are more than 8 categories
     colors = discrete_colors(plt.cm.Set2 if cmap is None else cmap, len(order))
 
-    fig = plt.figure(figsize=figsize)
+    plt.figure(figsize=figsize)
 
     if key.endswith('modes'):
         path = key.replace('_modes', '')
@@ -262,7 +262,7 @@ def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blue
 
     if pathway+'_tar' in adata.obs.keys():
         tar = np.asarray(adata.obs[pathway+'_tar'])
-        fig = plt.figure(figsize=(9,3))
+        plt.figure(figsize=(9,3))
         ax1 = plt.subplot(131)
         plt.axis('off')
         ax2 = plt.subplot(132)
@@ -273,7 +273,7 @@ def pathway_umap(adata, pathway, include='all', key='clusters', s=10, cmap='Blue
         ax3.set_title(pathway + ' targets')
         plt.axis('off')
     else:
-        fig = plt.figure(figsize=(6,3))
+        plt.figure(figsize=(6,3))
         ax1 = plt.subplot(121)
         plt.axis('off')
         ax2 = plt.subplot(122)
@@ -328,14 +328,14 @@ def feature_plot(adata, pathway=None, key='average', cells='all', groupby='clust
     lig_arr = np.asarray(X_lig.sum(axis=1)).ravel()
     rec_arr = np.asarray(X_rec.sum(axis=1)).ravel()
 
-    figure = plt.figure(figsize=figsize)
+    plt.figure(figsize=figsize)
 
-    ax = plt.subplot(121)
+    plt.subplot(121)
     plt.axis('off')
     plt.scatter(adata_sel.obsm['X_' + basis][:,0], adata_sel.obsm['X_' + basis][:,1], c=lig_arr, cmap='Reds', s=10)
     plt.title(pathway+' ligands')
 
-    ax = plt.subplot(122)
+    plt.subplot(122)
     plt.axis('off')
     plt.scatter(adata_sel.obsm['X_' + basis][:, 0], adata_sel.obsm['X_' + basis][:, 1], c=rec_arr, cmap='Reds', s=10)
     plt.title(pathway+' receptors')
