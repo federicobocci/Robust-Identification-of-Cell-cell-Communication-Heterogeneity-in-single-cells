@@ -7,7 +7,7 @@
 
 This repository hosts the code of the scRICH method, published in
 [Cell Systems](https://www.cell.com/cell-systems/fulltext/S2405-4712(26)00185-7).
-The method is developed by [Federico Bocci](https://www.ru.nl/en/departments/radboud-institute-for-molecular-life-sciences/computational-cell-fate)
+The method is developed by [Federico Bocci](https://boccilab.org)
 at Radboud University.
 
 ![scRICH schematic](misc/GA.png)
@@ -127,4 +127,4 @@ Continuous integration (GitHub Actions, `.github/workflows/`) runs on every push
 
 ## Contacts
 
-For any question, get in touch with Federico Bocci.
+For any question, get in touch with Federico Bocci (federico.bocci at ru.nl).
