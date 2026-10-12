@@ -2,7 +2,8 @@
 
 The files are Parquet conversions of the exFinder / CellChat tables
 (see ``scripts/convert_exfinder_to_parquet.py``). They are too large for the
-Python package itself and are hosted on Zenodo instead.
+Python package itself and are hosted on Zenodo instead
+(DOI `10.5281/zenodo.23319307 <https://doi.org/10.5281/zenodo.23319307>`_).
 
 To publish a new database version:
 
@@ -16,10 +17,11 @@ from __future__ import annotations
 #: Version label of the database release. Also used as the cache sub-folder.
 DB_VERSION = "v1"
 
-#: Zenodo record id hosting the files. ``None`` until the files are uploaded;
-#: in the meantime use a local copy via the ``SCRICH_DATA_DIR`` environment
-#: variable or :func:`scrich.db.set_data_dir`.
-ZENODO_RECORD: str | None = None
+#: Zenodo record id hosting the files (https://zenodo.org/records/23319307).
+ZENODO_RECORD: str | None = "23319307"
+
+#: DOI of the database release, for citation.
+ZENODO_DOI = "10.5281/zenodo.23319307"
 
 #: File name -> ``"sha256:<hash>"``.
 REGISTRY: dict[str, str] = {

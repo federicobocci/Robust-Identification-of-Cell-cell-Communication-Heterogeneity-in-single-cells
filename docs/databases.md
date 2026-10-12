@@ -7,14 +7,17 @@ used by {func}`scrich.tl.pathways_overview` and {func}`scrich.tl.find_genes`.
 
 **exFinder tables** (ligand -> receptor, receptor -> transcription factor, transcription factor ->
 target, and the CellChat interaction table; human and mouse, ~21 MB) are too large for the package. They
-are only needed by {func}`scrich.tl.import_database` (downstream genes of pathways) and are downloaded on
-first use, checked against SHA256 checksums, and cached.
+are only needed by {func}`scrich.tl.import_database` (downstream genes of pathways). They are hosted on
+Zenodo, DOI [10.5281/zenodo.23319307](https://doi.org/10.5281/zenodo.23319307), and are downloaded
+automatically on first use, checked against SHA256 checksums, and cached. No setup is needed.
+
+If you use them, please also cite the original exFinder and CellChat publications.
 
 ## Where the files are stored
 
 By default in the operating system's cache folder (e.g. `~/Library/Caches/scrich` on macOS,
-`~/.cache/scrich` on Linux). To use another folder, for example a shared folder on a cluster without
-internet access:
+`~/.cache/scrich` on Linux). To use another folder, for example a shared folder on a cluster whose
+compute nodes have no internet access (run `fetch_all` once on a machine with internet):
 
 ```bash
 export SCRICH_DATA_DIR=/path/to/scrich_db

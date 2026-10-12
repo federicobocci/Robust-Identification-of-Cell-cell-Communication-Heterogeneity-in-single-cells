@@ -49,8 +49,8 @@ jobs:
       - name: Show versions
         run: uv run --no-sync python -c "import scrich, numpy, scanpy, anndata; print('scrich', scrich.__version__, '| numpy', numpy.__version__, '| scanpy', scanpy.__version__, '| anndata', anndata.__version__)"
 
-      # The exFinder database tests are skipped until the database is published on Zenodo
-      # (set ZENODO_RECORD in src/scrich/db/_registry.py); scrich then downloads and caches it.
+      # The exFinder database (Zenodo 10.5281/zenodo.23319307) is downloaded by the tests and cached
+      # between runs; the cache is refreshed when the registry (record id / checksums) changes.
       - name: Cache scrich database
         uses: actions/cache@v4
         with:

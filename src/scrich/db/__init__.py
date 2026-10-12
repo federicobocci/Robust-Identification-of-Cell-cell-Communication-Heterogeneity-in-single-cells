@@ -9,7 +9,9 @@ There are two kinds of database files:
 **External tables** (large, downloaded on first use)
     exFinder layers (ligand-receptor, receptor-TF, TF-target) and the CellChat
     interaction table, loaded with :func:`load_exfinder`. Files are downloaded
-    once, verified against a SHA256 checksum and cached on disk.
+    once from Zenodo (DOI `10.5281/zenodo.23319307
+    <https://doi.org/10.5281/zenodo.23319307>`_), verified against a SHA256
+    checksum and cached on disk.
 
 Where external files are stored
 -------------------------------

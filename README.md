@@ -53,22 +53,20 @@ scRICH uses two kinds of database files (see `scrich.db`):
 | Data | Size | Where it lives |
 |---|---|---|
 | Pathway → ligand / receptor tables (CellChatDB) | ~50 kB | Shipped inside the package |
-| exFinder layers (L→R, R→TF, TF→target) + CellChat interactions, human & mouse | ~21 MB | Downloaded on first use and cached |
+| exFinder layers (L→R, R→TF, TF→target) + CellChat interactions, human & mouse | ~21 MB | [Zenodo](https://doi.org/10.5281/zenodo.23319307), downloaded on first use and cached |
 
 The external files are only needed for `scrich.tl.import_database` (target genes of a pathway).
-They are downloaded automatically once the database is published on Zenodo. Until then — or
-on a computer without internet — point scRICH to a local copy:
+They are downloaded automatically from Zenodo (DOI
+[10.5281/zenodo.23319307](https://doi.org/10.5281/zenodo.23319307)) the first time they are needed,
+then cached. Nothing needs to be set up.
 
-```bash
-export SCRICH_DATA_DIR=/path/to/scrich_db_v1
-```
-
-or in Python:
+On a computer without internet (e.g. a cluster compute node), download the files once from a
+machine that has internet and point scRICH to that folder:
 
 ```python
 import scrich as ri
-ri.db.set_data_dir("/path/to/scrich_db_v1")
-ri.db.fetch_all()   # check that all files are present and valid
+ri.db.set_data_dir("/path/to/scrich_db")   # or: export SCRICH_DATA_DIR=/path/to/scrich_db
+ri.db.fetch_all()   # download (or verify) all files now
 ```
 
 Files are verified with SHA256 checksums. `scripts/convert_exfinder_to_parquet.py` documents how
@@ -117,8 +115,8 @@ sphinx-build -b html docs docs/_build/html      # then open docs/_build/html/ind
 ```bash
 uv pip install -e ".[dev]"
 pre-commit install                       # run ruff and file checks before each commit
-pytest                                   # fast tests
-SCRICH_DATA_DIR=/path/to/scrich_db_v1 pytest   # also runs the database tests
+pytest              # all tests (the database tests download ~21 MB on first run)
+pytest -m "not network"   # skip the tests that need internet
 ```
 
 Continuous integration (GitHub Actions, `.github/workflows/`) runs on every push and pull request:

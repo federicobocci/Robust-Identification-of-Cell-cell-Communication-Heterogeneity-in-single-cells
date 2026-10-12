@@ -27,14 +27,15 @@ def _no_autoshow():
 def exfinder_dir():
     """Folder with the external database files, or skip the test.
 
-    Set ``SCRICH_DATA_DIR`` to a folder containing the ``*.parquet`` files.
+    The files are downloaded from Zenodo if needed (or read from ``SCRICH_DATA_DIR``).
     """
     import scrich as ri
 
-    folder = ri.db.data_dir()
-    if not all((folder / f).exists() for f in ri.db._registry.REGISTRY):
-        pytest.skip(f"exFinder database files not found in {folder} (set SCRICH_DATA_DIR)")
-    return folder
+    try:
+        ri.db.fetch_all()
+    except Exception as err:  # no internet, Zenodo down, ...
+        pytest.skip(f"exFinder database files not available: {err}")
+    return ri.db.data_dir()
 
 
 @pytest.fixture

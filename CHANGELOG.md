@@ -22,7 +22,8 @@
 - Pathway → ligand/receptor tables are bundled in the package; they no longer depend on the
   current working directory.
 - exFinder tables converted from CSV (597 MB) to Parquet (21 MB, same content), with SHA256
-  checksums, fetched with pooch and cached. Local copies via `SCRICH_DATA_DIR`.
+  checksums, hosted on Zenodo ([10.5281/zenodo.23319307](https://doi.org/10.5281/zenodo.23319307)),
+  downloaded with pooch on first use and cached. Local copies via `SCRICH_DATA_DIR`.
 - Removed hard-coded relative paths (`../../exfinder_database/...`, `pathway_database/...`).
 
 ### Code organisation (Phase 3)
