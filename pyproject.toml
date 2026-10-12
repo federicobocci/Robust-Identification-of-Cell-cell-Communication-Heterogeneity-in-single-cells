@@ -57,6 +57,7 @@ docs = [
 ]
 
 [project.urls]
+Documentation = "https://scrich.readthedocs.io"
 Homepage = "https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells"
 Source = "https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells"
 Paper = "https://www.cell.com/cell-systems/fulltext/S2405-4712(26)00185-7"

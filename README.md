@@ -3,6 +3,7 @@
 [![Tests](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/tests.yml/badge.svg)](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/tests.yml)
 [![Lint](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/lint.yml/badge.svg)](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/lint.yml)
 [![Docs](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/docs.yml/badge.svg)](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/actions/workflows/docs.yml)
+[![Documentation](https://readthedocs.org/projects/scrich/badge/?version=latest)](https://scrich.readthedocs.io/en/latest/)
 
 This repository hosts the code of the scRICH method, published in
 [Cell Systems](https://www.cell.com/cell-systems/fulltext/S2405-4712(26)00185-7).
@@ -102,9 +103,9 @@ transcriptomics (5). Datasets for tutorials 3–5 are on Zenodo, record
 
 ## Documentation
 
-The documentation (installation, analysis steps, databases, plotting, tutorials and the API reference
-generated from the docstrings) is in `docs/` and is built with Sphinx for Read the Docs
-(`.readthedocs.yaml`). To build it locally:
+The documentation is online at **https://scrich.readthedocs.io** (installation, analysis steps,
+databases, plotting, tutorials and the API reference generated from the docstrings). Its sources
+are in `docs/` and are built with Sphinx for Read the Docs (`.readthedocs.yaml`). To build it locally:
 
 ```bash
 pip install -e ".[docs]"
