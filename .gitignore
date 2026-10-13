@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Tests / tools
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Data: large files live on Zenodo, not in git
+*.h5ad
+*.rda
+exfinder_database/
+data/
+!src/scrich/data/
+datasets/
+
+# OS
+.DS_Store
+
+# Documentation build and files generated/copied at build time
+docs/_build/
+docs/api/generated/
+docs/tutorials/*.ipynb
+docs/_static/scrich_schematic.png

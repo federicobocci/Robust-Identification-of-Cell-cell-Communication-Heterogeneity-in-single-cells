@@ -1,0 +1,61 @@
+# Run the test suite on every push and pull request, and once a week to catch breaking changes in
+# dependencies (new releases of numpy, scanpy, scvelo, ...).
+name: Tests
+
+on:
+  push:
+    branches: [main, "refactor/**"]
+  pull_request:
+  schedule:
+    - cron: "0 5 * * 1"   # Mondays 05:00 UTC
+  workflow_dispatch:       # manual run from the Actions tab
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }} / ${{ matrix.extras }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.10", "3.12", "3.13"]
+        extras: ["dev,velocity,alluvial"]
+        include:
+          # core package only: optional dependencies must not be needed to import and use scrich
+          - os: ubuntu-latest
+            python: "3.12"
+            extras: "dev"
+    env:
+      MPLBACKEND: Agg
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0   # git tags are needed for the package version
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+
+      - name: Install scrich
+        run: |
+          uv venv
+          uv pip install -e ".[${{ matrix.extras }}]"
+
+      - name: Show versions
+        run: uv run --no-sync python -c "import scrich, numpy, scanpy, anndata; print('scrich', scrich.__version__, '| numpy', numpy.__version__, '| scanpy', scanpy.__version__, '| anndata', anndata.__version__)"
+
+      # The exFinder database (Zenodo 10.5281/zenodo.23319307) is downloaded by the tests and cached
+      # between runs; the cache is refreshed when the registry (record id / checksums) changes.
+      - name: Cache scrich database
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/scrich
+          key: scrich-db-${{ hashFiles('src/scrich/db/_registry.py') }}
+
+      - name: Run tests
+        run: uv run --no-sync pytest --cov=scrich --cov-report=term-missing:skip-covered
