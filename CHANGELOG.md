@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased (branch `refactor/v1`)
+## 1.0.0
 
 ### Packaging and environment (Phase 1)
 - Installable package: `pyproject.toml` (hatchling), `src/` layout, version taken from git tags.

@@ -1,0 +1,62 @@
+# Build scrich and publish it on PyPI when a GitHub release is published.
+# Uses PyPI "trusted publishing": no password or token is stored in GitHub.
+# One-time setup on pypi.org (Account -> Publishing -> Add a pending publisher):
+#   project: scrich, owner: federicobocci,
+#   repository: Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells,
+#   workflow: release.yml, environment: pypi
+name: Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:  # manual run: builds and checks the package, does not publish
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history and tags: the version is taken from the git tag
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Check package metadata
+        run: uvx twine check --strict dist/*
+
+      - name: Check the version matches the tag
+        if: github.event_name == 'release'
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ls dist/ | grep -q "scrich-${tag}" || { echo "Built version does not match tag ${GITHUB_REF_NAME}:"; ls dist/; exit 1; }
+
+      - name: Test the built wheel
+        run: |
+          uv venv /tmp/venv
+          uv pip install --python /tmp/venv dist/*.whl
+          /tmp/venv/bin/python -c "import scrich; print('scrich', scrich.__version__)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/scrich/
+    permissions:
+      id-token: write  # required for trusted publishing
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1

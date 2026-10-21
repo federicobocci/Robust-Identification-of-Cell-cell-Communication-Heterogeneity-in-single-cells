@@ -10,41 +10,42 @@ This repository hosts the code of the scRICH method, published in
 The method is developed by [Federico Bocci](https://boccilab.org)
 at Radboud University.
 
-![scRICH schematic](misc/GA.png)
+![scRICH schematic](https://raw.githubusercontent.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/main/misc/GA.png)
 
-> **Branch `refactor/v1` — work in progress.** This branch turns scRICH into an installable
-> Python package. The analysis functions are unchanged; the version used in the paper is the
-> GitHub release [`v0.1.0.0`](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/releases)
+> **Paper version.** scRICH 1.0 is an installable Python package with the same analysis methods
+> as the paper. The exact code used in the paper is the GitHub release
+> [`v0.1.0.0`](https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells/releases/tag/v0.1.0.0)
 > (Zenodo DOI [10.5281/zenodo.20394264](https://doi.org/10.5281/zenodo.20394264)).
+> See the [changelog](https://scrich.readthedocs.io/en/latest/changelog.html) for what changed.
 
 ## Installation
 
-scRICH requires Python ≥ 3.10 (3.12 recommended). Install into a fresh environment.
+scRICH requires Python ≥ 3.10 (3.12 recommended). Install into a fresh environment:
 
-**With [uv](https://docs.astral.sh/uv/) (fast, recommended)**
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+pip install "scrich[tutorials]"     # or: pip install scrich   (core package only)
+```
+
+With [uv](https://docs.astral.sh/uv/): `uv venv --python 3.12 .venv && source .venv/bin/activate && uv pip install "scrich[tutorials]"`.
+
+**From the source code (development)**
 
 ```bash
 git clone https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells scrich
 cd scrich
 uv venv --python 3.12 .venv
 source .venv/bin/activate
-uv pip install -e ".[tutorials]"
+uv pip install -e ".[tutorials,dev]"      # or: pip install -e ".[tutorials,dev]"
 ```
 
-**With pip / venv**
-
-```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[tutorials]"
-```
-
-**With conda**: `conda env create -f environment.yml && conda activate scrich`
+With conda (from the source code): `conda env create -f environment.yml && conda activate scrich`
 
 Optional extras: `velocity` (scvelo + seaborn, for RNA-velocity functions and plots), `alluvial` (plotly +
 kaleido, for `scrich.pl.alluvial_*`), `chord` (d3blocks, for `scrich.pl.chord_diagram`), `tutorials` (all of
 these + JupyterLab + LIANA), `dev` (pytest, ruff).
-A plain `pip install -e .` installs only the core package.
+A plain `pip install scrich` installs only the core package.
 
 ## Databases
 

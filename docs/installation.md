@@ -7,10 +7,10 @@ scRICH requires Python 3.10 or newer (3.12 recommended). Install it in a fresh e
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-pip install "scrich[tutorials] @ git+https://github.com/federicobocci/Robust-Identification-of-Cell-cell-Communication-Heterogeneity-in-single-cells"
+pip install "scrich[tutorials]"     # or: pip install scrich   (core package only)
 ```
 
-Once scRICH is on PyPI this becomes `pip install "scrich[tutorials]"`.
+With [uv](https://docs.astral.sh/uv/): `uv pip install "scrich[tutorials]"`.
 
 ## From a local copy (development)
 
